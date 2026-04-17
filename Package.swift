@@ -3,7 +3,13 @@ import PackageDescription
 
 let package = Package(
     name: "compression",
-    platforms: [.macOS(.v26)],
+    platforms: [
+        .macOS(.v26),
+        .iOS(.v26),
+        .tvOS(.v26),
+        .watchOS(.v26),
+        .visionOS(.v26),
+    ],
     products: [
         .library(
             name: "Compression",
@@ -52,6 +58,6 @@ var swiftSettings: [SwiftSetting] {
         .enableExperimentalFeature("SafeInteropWrappers"),
         .unsafeFlags(["-Xcc", "-fexperimental-bounds-safety-attributes"]),
         .enableExperimentalFeature("Lifetimes"),
-        .enableExperimentalFeature("SuppressedAssociatedTypesWithDefaults"),
+        .enableExperimentalFeature("SuppressedAssociatedTypes"),
     ]
 }
