@@ -17,8 +17,8 @@ let package = Package(
             ],
             path: "CompressionBenchmarks",
             plugins: [
-                .plugin(name: "BenchmarkPlugin", package: "package-benchmark"),
+                .plugin(name: "BenchmarkPlugin", package: "package-benchmark")
             ]
-        ),
+        )
     ]
 )
