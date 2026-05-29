@@ -1,23 +1,28 @@
+#if canImport(_Concurrency)
+import _Concurrency
+
 public struct DecompressionAsyncSequence<
     BackingSequence: AsyncSequence,
-    Algorithm: CompressionAlgorithm
+    Algorithm: StreamingDecompressionAlgorithm
 >: AsyncSequence where BackingSequence.Element: CompressibleInput {
-    final class DecompressorBox<D: StreamingDecompressor & ~Copyable> {
-        var value: D
-        var buffer: [UInt8] = []
-        init(_ value: consuming D) { self.value = value }
-    }
-
     let backingSequence: BackingSequence
-    let decompressor: DecompressorBox<Algorithm.StreamingDecompressor>
+    let configuration: Algorithm.DecompressionConfiguration
 
-    public init(backingSequence: BackingSequence, configuration: Algorithm.Configuration) throws {
+    public init(
+        backingSequence: BackingSequence,
+        configuration: Algorithm.DecompressionConfiguration
+    ) {
         self.backingSequence = backingSequence
-        self.decompressor = try .init(.init(configuration: configuration))
+        self.configuration = configuration
     }
 
     public struct AsyncIterator: AsyncIteratorProtocol {
-        // No BorrowingAsyncSequence :(
+        final class DecompressorBox<D: StreamingDecompressor & ~Copyable> {
+            var value: D
+            var buffer: [UInt8] = []
+            init(_ value: consuming D) { self.value = value }
+        }
+
         public typealias Element = [UInt8]
 
         var backingIterator: BackingSequence.AsyncIterator
@@ -28,12 +33,7 @@ public struct DecompressionAsyncSequence<
             decompressor.buffer.removeAll(keepingCapacity: true)
             try chunk.withSpan { inputSpan in
                 try decompressor.value.decompress(inputSpan) { resultSpan in
-                    // TODO: replace with Array(span) when available
-                    decompressor.buffer.append(addingCapacity: resultSpan.count) {
-                        for i in 0..<resultSpan.count {
-                            $0.append(resultSpan[i])
-                        }
-                    }
+                    unsafe decompressor.buffer.append(span: resultSpan)
                 }
             }
             return decompressor.buffer
@@ -41,15 +41,20 @@ public struct DecompressionAsyncSequence<
     }
 
     public func makeAsyncIterator() -> AsyncIterator {
-        AsyncIterator(backingIterator: backingSequence.makeAsyncIterator(), decompressor: decompressor)
+        AsyncIterator(
+            backingIterator: backingSequence.makeAsyncIterator(),
+            decompressor: .init(.init(configuration: configuration))
+        )
     }
 }
 
 extension AsyncSequence {
     public func decompressed<Algorithm: CompressionAlgorithm>(
         using algorithm: Algorithm.Type,
-        configuration: Algorithm.Configuration = .default
-    ) throws -> DecompressionAsyncSequence<Self, Algorithm> where Element: CompressibleInput {
-        try .init(backingSequence: self, configuration: configuration)
+        configuration: Algorithm.DecompressionConfiguration = .default
+    ) -> DecompressionAsyncSequence<Self, Algorithm>
+    where Element: CompressibleInput {
+        .init(backingSequence: self, configuration: configuration)
     }
 }
+#endif

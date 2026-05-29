@@ -28,21 +28,21 @@
   (zlib format), rfc1951 (deflate format) and rfc1952 (gzip format).
 */
 
-#ifndef ZLIB_H
-#define ZLIB_H
+#ifndef CZLIB_ZLIB_H
+#define CZLIB_ZLIB_H
 
-#include "zconf.h"
+#include "czlib-zconf.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define ZLIB_VERSION "1.3.1"
-#define ZLIB_VERNUM 0x1310
-#define ZLIB_VER_MAJOR 1
-#define ZLIB_VER_MINOR 3
-#define ZLIB_VER_REVISION 1
-#define ZLIB_VER_SUBREVISION 0
+#define CZLIB_ZLIB_VERSION "1.3.1"
+#define CZLIB_ZLIB_VERNUM 0x1310
+#define CZLIB_ZLIB_VER_MAJOR 1
+#define CZLIB_ZLIB_VER_MINOR 3
+#define CZLIB_ZLIB_VER_REVISION 1
+#define CZLIB_ZLIB_VER_SUBREVISION 0
 
 /*
     The 'zlib' compression library provides in-memory compression and
@@ -83,8 +83,8 @@ typedef void   (*free_func)(voidpf opaque, voidpf address);
 
 struct internal_state;
 
-typedef struct z_stream_s {
-    z_const Bytef *next_in;     /* next input byte */
+typedef struct czlib_z_stream_s {
+    czlib_z_const Bytef *next_in;     /* next input byte */
     uInt     avail_in;  /* number of bytes available at next_in */
     uLong    total_in;  /* total number of input bytes read so far */
 
@@ -92,7 +92,7 @@ typedef struct z_stream_s {
     uInt     avail_out; /* remaining free space at next_out */
     uLong    total_out; /* total number of bytes output so far */
 
-    z_const char *msg;  /* last error message, NULL if no error */
+    czlib_z_const char *msg;  /* last error message, NULL if no error */
     struct internal_state FAR *state; /* not visible by applications */
 
     alloc_func zalloc;  /* used to allocate the internal state */
@@ -103,9 +103,9 @@ typedef struct z_stream_s {
                            for deflate, or the decoding state for inflate */
     uLong   adler;      /* Adler-32 or CRC-32 value of the uncompressed data */
     uLong   reserved;   /* reserved for future use */
-} z_stream;
+} czlib_z_stream;
 
-typedef z_stream FAR *z_streamp;
+typedef czlib_z_stream FAR *czlib_z_streamp;
 
 /*
      gzip header information passed to and from zlib routines.  See RFC 1952
@@ -116,12 +116,12 @@ typedef struct gz_header_s {
     uLong   time;       /* modification time */
     int     xflags;     /* extra flags (not used when writing a gzip file) */
     int     os;         /* operating system */
-    Bytef   *extra;     /* pointer to extra field or Z_NULL if none */
-    uInt    extra_len;  /* extra field length (valid if extra != Z_NULL) */
+    Bytef   *extra;     /* pointer to extra field or CZLIB_Z_NULL if none */
+    uInt    extra_len;  /* extra field length (valid if extra != CZLIB_Z_NULL) */
     uInt    extra_max;  /* space at extra (only when reading header) */
-    Bytef   *name;      /* pointer to zero-terminated file name or Z_NULL */
+    Bytef   *name;      /* pointer to zero-terminated file name or CZLIB_Z_NULL */
     uInt    name_max;   /* space at name (only when reading header) */
-    Bytef   *comment;   /* pointer to zero-terminated comment or Z_NULL */
+    Bytef   *comment;   /* pointer to zero-terminated comment or CZLIB_Z_NULL */
     uInt    comm_max;   /* space at comment (only when reading header) */
     int     hcrc;       /* true if there was or will be a header crc */
     int     done;       /* true when done reading gzip header (not used
@@ -142,10 +142,10 @@ typedef gz_header FAR *gz_headerp;
    memory management.  The compression library attaches no meaning to the
    opaque value.
 
-     zalloc must return Z_NULL if there is not enough memory for the object.
+     zalloc must return CZLIB_Z_NULL if there is not enough memory for the object.
    If zlib is used in a multi-threaded application, zalloc and zfree must be
    thread safe.  In that case, zlib is thread-safe.  When zalloc and zfree are
-   Z_NULL on entry to the initialization function, they are set to internal
+   CZLIB_Z_NULL on entry to the initialization function, they are set to internal
    routines that use the standard library functions malloc() and free().
 
      On 16-bit systems, the functions zalloc and zfree must be able to allocate
@@ -165,51 +165,51 @@ typedef gz_header FAR *gz_headerp;
 
                         /* constants */
 
-#define Z_NO_FLUSH      0
-#define Z_PARTIAL_FLUSH 1
-#define Z_SYNC_FLUSH    2
-#define Z_FULL_FLUSH    3
-#define Z_FINISH        4
-#define Z_BLOCK         5
-#define Z_TREES         6
+#define CZLIB_Z_NO_FLUSH      0
+#define CZLIB_Z_PARTIAL_FLUSH 1
+#define CZLIB_Z_SYNC_FLUSH    2
+#define CZLIB_Z_FULL_FLUSH    3
+#define CZLIB_Z_FINISH        4
+#define CZLIB_Z_BLOCK         5
+#define CZLIB_Z_TREES         6
 /* Allowed flush values; see deflate() and inflate() below for details */
 
-#define Z_OK            0
-#define Z_STREAM_END    1
-#define Z_NEED_DICT     2
-#define Z_ERRNO        (-1)
-#define Z_STREAM_ERROR (-2)
-#define Z_DATA_ERROR   (-3)
-#define Z_MEM_ERROR    (-4)
-#define Z_BUF_ERROR    (-5)
-#define Z_VERSION_ERROR (-6)
+#define CZLIB_Z_OK            0
+#define CZLIB_Z_STREAM_END    1
+#define CZLIB_Z_NEED_DICT     2
+#define CZLIB_Z_ERRNO        (-1)
+#define CZLIB_Z_STREAM_ERROR (-2)
+#define CZLIB_Z_DATA_ERROR   (-3)
+#define CZLIB_Z_MEM_ERROR    (-4)
+#define CZLIB_Z_BUF_ERROR    (-5)
+#define CZLIB_Z_VERSION_ERROR (-6)
 /* Return codes for the compression/decompression functions. Negative values
  * are errors, positive values are used for special but normal events.
  */
 
-#define Z_NO_COMPRESSION         0
-#define Z_BEST_SPEED             1
-#define Z_BEST_COMPRESSION       9
-#define Z_DEFAULT_COMPRESSION  (-1)
+#define CZLIB_Z_NO_COMPRESSION         0
+#define CZLIB_Z_BEST_SPEED             1
+#define CZLIB_Z_BEST_COMPRESSION       9
+#define CZLIB_Z_DEFAULT_COMPRESSION  (-1)
 /* compression levels */
 
-#define Z_FILTERED            1
-#define Z_HUFFMAN_ONLY        2
-#define Z_RLE                 3
-#define Z_FIXED               4
-#define Z_DEFAULT_STRATEGY    0
+#define CZLIB_Z_FILTERED            1
+#define CZLIB_Z_HUFFMAN_ONLY        2
+#define CZLIB_Z_RLE                 3
+#define CZLIB_Z_FIXED               4
+#define CZLIB_Z_DEFAULT_STRATEGY    0
 /* compression strategy; see deflateInit2() below for details */
 
-#define Z_BINARY   0
-#define Z_TEXT     1
-#define Z_ASCII    Z_TEXT   /* for compatibility with 1.2.2 and earlier */
-#define Z_UNKNOWN  2
+#define CZLIB_Z_BINARY   0
+#define CZLIB_Z_TEXT     1
+#define CZLIB_Z_ASCII    CZLIB_Z_TEXT   /* for compatibility with 1.2.2 and earlier */
+#define CZLIB_Z_UNKNOWN  2
 /* Possible values of the data_type field for deflate() */
 
-#define Z_DEFLATED   8
+#define CZLIB_Z_DEFLATED   8
 /* The deflate compression method (the only one supported in this version) */
 
-#define Z_NULL  0  /* for initializing zalloc, zfree, opaque */
+#define CZLIB_Z_NULL  0  /* for initializing zalloc, zfree, opaque */
 
 #define zlib_version zlibVersion()
 /* for compatibility with versions < 1.0.2 */
@@ -218,36 +218,36 @@ typedef gz_header FAR *gz_headerp;
                         /* basic functions */
 
 ZEXTERN const char * ZEXPORT zlibVersion(void);
-/* The application can compare zlibVersion and ZLIB_VERSION for consistency.
+/* The application can compare zlibVersion and CZLIB_ZLIB_VERSION for consistency.
    If the first character differs, the library code actually used is not
    compatible with the zlib.h header file used by the application.  This check
    is automatically made by deflateInit and inflateInit.
  */
 
 /*
-ZEXTERN int ZEXPORT deflateInit(z_streamp strm, int level);
+ZEXTERN int ZEXPORT deflateInit(czlib_z_streamp strm, int level);
 
      Initializes the internal stream state for compression.  The fields
    zalloc, zfree and opaque must be initialized before by the caller.  If
-   zalloc and zfree are set to Z_NULL, deflateInit updates them to use default
+   zalloc and zfree are set to CZLIB_Z_NULL, deflateInit updates them to use default
    allocation functions.  total_in, total_out, adler, and msg are initialized.
 
-     The compression level must be Z_DEFAULT_COMPRESSION, or between 0 and 9:
+     The compression level must be CZLIB_Z_DEFAULT_COMPRESSION, or between 0 and 9:
    1 gives best speed, 9 gives best compression, 0 gives no compression at all
-   (the input data is simply copied a block at a time).  Z_DEFAULT_COMPRESSION
+   (the input data is simply copied a block at a time).  CZLIB_Z_DEFAULT_COMPRESSION
    requests a default compromise between speed and compression (currently
    equivalent to level 6).
 
-     deflateInit returns Z_OK if success, Z_MEM_ERROR if there was not enough
-   memory, Z_STREAM_ERROR if level is not a valid compression level, or
-   Z_VERSION_ERROR if the zlib library version (zlib_version) is incompatible
-   with the version assumed by the caller (ZLIB_VERSION).  msg is set to null
+     deflateInit returns CZLIB_Z_OK if success, CZLIB_Z_MEM_ERROR if there was not enough
+   memory, CZLIB_Z_STREAM_ERROR if level is not a valid compression level, or
+   CZLIB_Z_VERSION_ERROR if the zlib library version (zlib_version) is incompatible
+   with the version assumed by the caller (CZLIB_ZLIB_VERSION).  msg is set to null
    if there is no error message.  deflateInit does not perform any compression:
    this will be done by deflate().
 */
 
 
-ZEXTERN int ZEXPORT deflate(z_streamp strm, int flush);
+ZEXTERN int ZEXPORT deflate(czlib_z_streamp strm, int flush);
 /*
     deflate compresses as much data as possible, and stops when the input
   buffer becomes empty or the output buffer becomes full.  It may introduce
@@ -273,17 +273,17 @@ ZEXTERN int ZEXPORT deflate(z_streamp strm, int flush);
   output, and updating avail_in or avail_out accordingly; avail_out should
   never be zero before the call.  The application can consume the compressed
   output when it wants, for example when the output buffer is full (avail_out
-  == 0), or after each call of deflate().  If deflate returns Z_OK and with
+  == 0), or after each call of deflate().  If deflate returns CZLIB_Z_OK and with
   zero avail_out, it must be called again after making room in the output
   buffer because there might be more output pending. See deflatePending(),
   which can be used if desired to determine whether or not there is more output
   in that case.
 
-    Normally the parameter flush is set to Z_NO_FLUSH, which allows deflate to
+    Normally the parameter flush is set to CZLIB_Z_NO_FLUSH, which allows deflate to
   decide how much data to accumulate before producing output, in order to
   maximize compression.
 
-    If the parameter flush is set to Z_SYNC_FLUSH, all pending output is
+    If the parameter flush is set to CZLIB_Z_SYNC_FLUSH, all pending output is
   flushed to the output buffer and the output is aligned on a byte boundary, so
   that the decompressor can get all input data available so far.  (In
   particular avail_in is zero after the call if enough output space has been
@@ -293,16 +293,16 @@ ZEXTERN int ZEXPORT deflate(z_streamp strm, int flush);
   that is three bits plus filler bits to the next byte, followed by four bytes
   (00 00 ff ff).
 
-    If flush is set to Z_PARTIAL_FLUSH, all pending output is flushed to the
+    If flush is set to CZLIB_Z_PARTIAL_FLUSH, all pending output is flushed to the
   output buffer, but the output is not aligned to a byte boundary.  All of the
-  input data so far will be available to the decompressor, as for Z_SYNC_FLUSH.
+  input data so far will be available to the decompressor, as for CZLIB_Z_SYNC_FLUSH.
   This completes the current deflate block and follows it with an empty fixed
   codes block that is 10 bits long.  This assures that enough bytes are output
   in order for the decompressor to finish the block before the empty fixed
   codes block.
 
-    If flush is set to Z_BLOCK, a deflate block is completed and emitted, as
-  for Z_SYNC_FLUSH, but the output is not aligned on a byte boundary, and up to
+    If flush is set to CZLIB_Z_BLOCK, a deflate block is completed and emitted, as
+  for CZLIB_Z_SYNC_FLUSH, but the output is not aligned on a byte boundary, and up to
   seven bits of the current block are held to be written as the next byte after
   the next deflate block is completed.  In this case, the decompressor may not
   be provided enough bits at this point in order to complete decompression of
@@ -310,32 +310,32 @@ ZEXTERN int ZEXPORT deflate(z_streamp strm, int flush);
   block to be emitted.  This is for advanced applications that need to control
   the emission of deflate blocks.
 
-    If flush is set to Z_FULL_FLUSH, all output is flushed as with
-  Z_SYNC_FLUSH, and the compression state is reset so that decompression can
+    If flush is set to CZLIB_Z_FULL_FLUSH, all output is flushed as with
+  CZLIB_Z_SYNC_FLUSH, and the compression state is reset so that decompression can
   restart from this point if previous compressed data has been damaged or if
-  random access is desired.  Using Z_FULL_FLUSH too often can seriously degrade
+  random access is desired.  Using CZLIB_Z_FULL_FLUSH too often can seriously degrade
   compression.
 
     If deflate returns with avail_out == 0, this function must be called again
   with the same value of the flush parameter and more output space (updated
   avail_out), until the flush is complete (deflate returns with non-zero
-  avail_out).  In the case of a Z_FULL_FLUSH or Z_SYNC_FLUSH, make sure that
+  avail_out).  In the case of a CZLIB_Z_FULL_FLUSH or CZLIB_Z_SYNC_FLUSH, make sure that
   avail_out is greater than six when the flush marker begins, in order to avoid
   repeated flush markers upon calling deflate() again when avail_out == 0.
 
-    If the parameter flush is set to Z_FINISH, pending input is processed,
-  pending output is flushed and deflate returns with Z_STREAM_END if there was
-  enough output space.  If deflate returns with Z_OK or Z_BUF_ERROR, this
-  function must be called again with Z_FINISH and more output space (updated
-  avail_out) but no more input data, until it returns with Z_STREAM_END or an
-  error.  After deflate has returned Z_STREAM_END, the only possible operations
+    If the parameter flush is set to CZLIB_Z_FINISH, pending input is processed,
+  pending output is flushed and deflate returns with CZLIB_Z_STREAM_END if there was
+  enough output space.  If deflate returns with CZLIB_Z_OK or CZLIB_Z_BUF_ERROR, this
+  function must be called again with CZLIB_Z_FINISH and more output space (updated
+  avail_out) but no more input data, until it returns with CZLIB_Z_STREAM_END or an
+  error.  After deflate has returned CZLIB_Z_STREAM_END, the only possible operations
   on the stream are deflateReset or deflateEnd.
 
-    Z_FINISH can be used in the first deflate call after deflateInit if all the
+    CZLIB_Z_FINISH can be used in the first deflate call after deflateInit if all the
   compression is to be done in a single step.  In order to complete in one
   call, avail_out must be at least the value returned by deflateBound (see
-  below).  Then deflate is guaranteed to return Z_STREAM_END.  If not enough
-  output space is provided, deflate will not return Z_STREAM_END, and it must
+  below).  Then deflate is guaranteed to return CZLIB_Z_STREAM_END.  If not enough
+  output space is provided, deflate will not return CZLIB_Z_STREAM_END, and it must
   be called again as described above.
 
     deflate() sets strm->adler to the Adler-32 checksum of all input read
@@ -344,30 +344,30 @@ ZEXTERN int ZEXPORT deflate(z_streamp strm, int flush);
   deflateInit2 below.)
 
     deflate() may update strm->data_type if it can make a good guess about
-  the input data type (Z_BINARY or Z_TEXT).  If in doubt, the data is
+  the input data type (CZLIB_Z_BINARY or CZLIB_Z_TEXT).  If in doubt, the data is
   considered binary.  This field is only for information purposes and does not
   affect the compression algorithm in any manner.
 
-    deflate() returns Z_OK if some progress has been made (more input
-  processed or more output produced), Z_STREAM_END if all input has been
+    deflate() returns CZLIB_Z_OK if some progress has been made (more input
+  processed or more output produced), CZLIB_Z_STREAM_END if all input has been
   consumed and all output has been produced (only when flush is set to
-  Z_FINISH), Z_STREAM_ERROR if the stream state was inconsistent (for example
-  if next_in or next_out was Z_NULL or the state was inadvertently written over
-  by the application), or Z_BUF_ERROR if no progress is possible (for example
-  avail_in or avail_out was zero).  Note that Z_BUF_ERROR is not fatal, and
+  CZLIB_Z_FINISH), CZLIB_Z_STREAM_ERROR if the stream state was inconsistent (for example
+  if next_in or next_out was CZLIB_Z_NULL or the state was inadvertently written over
+  by the application), or CZLIB_Z_BUF_ERROR if no progress is possible (for example
+  avail_in or avail_out was zero).  Note that CZLIB_Z_BUF_ERROR is not fatal, and
   deflate() can be called again with more input and more output space to
   continue compressing.
 */
 
 
-ZEXTERN int ZEXPORT deflateEnd(z_streamp strm);
+ZEXTERN int ZEXPORT deflateEnd(czlib_z_streamp strm);
 /*
      All dynamically allocated data structures for this stream are freed.
    This function discards any unprocessed input and does not flush any pending
    output.
 
-     deflateEnd returns Z_OK if success, Z_STREAM_ERROR if the
-   stream state was inconsistent, Z_DATA_ERROR if the stream was freed
+     deflateEnd returns CZLIB_Z_OK if success, CZLIB_Z_STREAM_ERROR if the
+   stream state was inconsistent, CZLIB_Z_DATA_ERROR if the stream was freed
    prematurely (some input or output was discarded).  In the error case, msg
    may be set but then points to a static string (which must not be
    deallocated).
@@ -375,20 +375,20 @@ ZEXTERN int ZEXPORT deflateEnd(z_streamp strm);
 
 
 /*
-ZEXTERN int ZEXPORT inflateInit(z_streamp strm);
+ZEXTERN int ZEXPORT inflateInit(czlib_z_streamp strm);
 
      Initializes the internal stream state for decompression.  The fields
    next_in, avail_in, zalloc, zfree and opaque must be initialized before by
    the caller.  In the current version of inflate, the provided input is not
    read or consumed.  The allocation of a sliding window will be deferred to
    the first call of inflate (if the decompression does not complete on the
-   first call).  If zalloc and zfree are set to Z_NULL, inflateInit updates
+   first call).  If zalloc and zfree are set to CZLIB_Z_NULL, inflateInit updates
    them to use default allocation functions.  total_in, total_out, adler, and
    msg are initialized.
 
-     inflateInit returns Z_OK if success, Z_MEM_ERROR if there was not enough
-   memory, Z_VERSION_ERROR if the zlib library version is incompatible with the
-   version assumed by the caller, or Z_STREAM_ERROR if the parameters are
+     inflateInit returns CZLIB_Z_OK if success, CZLIB_Z_MEM_ERROR if there was not enough
+   memory, CZLIB_Z_VERSION_ERROR if the zlib library version is incompatible with the
+   version assumed by the caller, or CZLIB_Z_STREAM_ERROR if the parameters are
    invalid, such as a null pointer to the structure.  msg is set to null if
    there is no error message.  inflateInit does not perform any decompression.
    Actual decompression will be done by inflate().  So next_in, and avail_in,
@@ -398,7 +398,7 @@ ZEXTERN int ZEXPORT inflateInit(z_streamp strm);
 */
 
 
-ZEXTERN int ZEXPORT inflate(z_streamp strm, int flush);
+ZEXTERN int ZEXPORT inflate(czlib_z_streamp strm, int flush);
 /*
     inflate decompresses as much data as possible, and stops when the input
   buffer becomes empty or the output buffer becomes full.  It may introduce
@@ -426,20 +426,20 @@ ZEXTERN int ZEXPORT inflate(z_streamp strm, int flush);
   output space, it is possible that there will be no progress made.  The
   application can consume the uncompressed output when it wants, for example
   when the output buffer is full (avail_out == 0), or after each call of
-  inflate().  If inflate returns Z_OK and with zero avail_out, it must be
+  inflate().  If inflate returns CZLIB_Z_OK and with zero avail_out, it must be
   called again after making room in the output buffer because there might be
   more output pending.
 
-    The flush parameter of inflate() can be Z_NO_FLUSH, Z_SYNC_FLUSH, Z_FINISH,
-  Z_BLOCK, or Z_TREES.  Z_SYNC_FLUSH requests that inflate() flush as much
-  output as possible to the output buffer.  Z_BLOCK requests that inflate()
+    The flush parameter of inflate() can be CZLIB_Z_NO_FLUSH, CZLIB_Z_SYNC_FLUSH, CZLIB_Z_FINISH,
+  CZLIB_Z_BLOCK, or CZLIB_Z_TREES.  CZLIB_Z_SYNC_FLUSH requests that inflate() flush as much
+  output as possible to the output buffer.  CZLIB_Z_BLOCK requests that inflate()
   stop if and when it gets to the next deflate block boundary.  When decoding
   the zlib or gzip format, this will cause inflate() to return immediately
   after the header and before the first block.  When doing a raw inflate,
   inflate() will go ahead and process the first block, and will return when it
   gets to the end of that block, or when it runs out of data.
 
-    The Z_BLOCK option assists in appending to or combining deflate streams.
+    The CZLIB_Z_BLOCK option assists in appending to or combining deflate streams.
   To assist in this, on return inflate() always sets strm->data_type to the
   number of unused bits in the last byte taken from strm->next_in, plus 64 if
   inflate() is currently decoding the last block in the deflate stream, plus
@@ -453,43 +453,43 @@ ZEXTERN int ZEXPORT inflate(z_streamp strm, int flush);
   flush options, and so can be used to determine the amount of currently
   consumed input in bits.
 
-    The Z_TREES option behaves as Z_BLOCK does, but it also returns when the
+    The CZLIB_Z_TREES option behaves as CZLIB_Z_BLOCK does, but it also returns when the
   end of each deflate block header is reached, before any actual data in that
   block is decoded.  This allows the caller to determine the length of the
   deflate block header for later use in random access within a deflate block.
   256 is added to the value of strm->data_type when inflate() returns
   immediately after reaching the end of the deflate block header.
 
-    inflate() should normally be called until it returns Z_STREAM_END or an
+    inflate() should normally be called until it returns CZLIB_Z_STREAM_END or an
   error.  However if all decompression is to be performed in a single step (a
-  single call of inflate), the parameter flush should be set to Z_FINISH.  In
+  single call of inflate), the parameter flush should be set to CZLIB_Z_FINISH.  In
   this case all pending input is processed and all pending output is flushed;
   avail_out must be large enough to hold all of the uncompressed data for the
   operation to complete.  (The size of the uncompressed data may have been
-  saved by the compressor for this purpose.)  The use of Z_FINISH is not
+  saved by the compressor for this purpose.)  The use of CZLIB_Z_FINISH is not
   required to perform an inflation in one step.  However it may be used to
   inform inflate that a faster approach can be used for the single inflate()
-  call.  Z_FINISH also informs inflate to not maintain a sliding window if the
+  call.  CZLIB_Z_FINISH also informs inflate to not maintain a sliding window if the
   stream completes, which reduces inflate's memory footprint.  If the stream
   does not complete, either because not all of the stream is provided or not
   enough output space is provided, then a sliding window will be allocated and
-  inflate() can be called again to continue the operation as if Z_NO_FLUSH had
+  inflate() can be called again to continue the operation as if CZLIB_Z_NO_FLUSH had
   been used.
 
      In this implementation, inflate() always flushes as much output as
   possible to the output buffer, and always uses the faster approach on the
   first call.  So the effects of the flush parameter in this implementation are
   on the return value of inflate() as noted below, when inflate() returns early
-  when Z_BLOCK or Z_TREES is used, and when inflate() avoids the allocation of
-  memory for a sliding window when Z_FINISH is used.
+  when CZLIB_Z_BLOCK or CZLIB_Z_TREES is used, and when inflate() avoids the allocation of
+  memory for a sliding window when CZLIB_Z_FINISH is used.
 
      If a preset dictionary is needed after this call (see inflateSetDictionary
   below), inflate sets strm->adler to the Adler-32 checksum of the dictionary
-  chosen by the compressor and returns Z_NEED_DICT; otherwise it sets
+  chosen by the compressor and returns CZLIB_Z_NEED_DICT; otherwise it sets
   strm->adler to the Adler-32 checksum of all output produced so far (that is,
-  total_out bytes) and returns Z_OK, Z_STREAM_END or an error code as described
+  total_out bytes) and returns CZLIB_Z_OK, CZLIB_Z_STREAM_END or an error code as described
   below.  At the end of the stream, inflate() checks that its computed Adler-32
-  checksum is equal to that saved by the compressor and returns Z_STREAM_END
+  checksum is equal to that saved by the compressor and returns CZLIB_Z_STREAM_END
   only if the checksum is correct.
 
     inflate() can decompress and check either zlib-wrapped or gzip-wrapped
@@ -500,31 +500,31 @@ ZEXTERN int ZEXPORT inflate(z_streamp strm, int flush);
   produced so far.  The CRC-32 is checked against the gzip trailer, as is the
   uncompressed length, modulo 2^32.
 
-    inflate() returns Z_OK if some progress has been made (more input processed
-  or more output produced), Z_STREAM_END if the end of the compressed data has
-  been reached and all uncompressed output has been produced, Z_NEED_DICT if a
-  preset dictionary is needed at this point, Z_DATA_ERROR if the input data was
+    inflate() returns CZLIB_Z_OK if some progress has been made (more input processed
+  or more output produced), CZLIB_Z_STREAM_END if the end of the compressed data has
+  been reached and all uncompressed output has been produced, CZLIB_Z_NEED_DICT if a
+  preset dictionary is needed at this point, CZLIB_Z_DATA_ERROR if the input data was
   corrupted (input stream not conforming to the zlib format or incorrect check
   value, in which case strm->msg points to a string with a more specific
-  error), Z_STREAM_ERROR if the stream structure was inconsistent (for example
-  next_in or next_out was Z_NULL, or the state was inadvertently written over
-  by the application), Z_MEM_ERROR if there was not enough memory, Z_BUF_ERROR
+  error), CZLIB_Z_STREAM_ERROR if the stream structure was inconsistent (for example
+  next_in or next_out was CZLIB_Z_NULL, or the state was inadvertently written over
+  by the application), CZLIB_Z_MEM_ERROR if there was not enough memory, CZLIB_Z_BUF_ERROR
   if no progress was possible or if there was not enough room in the output
-  buffer when Z_FINISH is used.  Note that Z_BUF_ERROR is not fatal, and
+  buffer when CZLIB_Z_FINISH is used.  Note that CZLIB_Z_BUF_ERROR is not fatal, and
   inflate() can be called again with more input and more output space to
-  continue decompressing.  If Z_DATA_ERROR is returned, the application may
+  continue decompressing.  If CZLIB_Z_DATA_ERROR is returned, the application may
   then call inflateSync() to look for a good compression block if a partial
   recovery of the data is to be attempted.
 */
 
 
-ZEXTERN int ZEXPORT inflateEnd(z_streamp strm);
+ZEXTERN int ZEXPORT inflateEnd(czlib_z_streamp strm);
 /*
      All dynamically allocated data structures for this stream are freed.
    This function discards any unprocessed input and does not flush any pending
    output.
 
-     inflateEnd returns Z_OK if success, or Z_STREAM_ERROR if the stream state
+     inflateEnd returns CZLIB_Z_OK if success, or CZLIB_Z_STREAM_ERROR if the stream state
    was inconsistent.
 */
 
@@ -536,7 +536,7 @@ ZEXTERN int ZEXPORT inflateEnd(z_streamp strm);
 */
 
 /*
-ZEXTERN int ZEXPORT deflateInit2(z_streamp strm,
+ZEXTERN int ZEXPORT deflateInit2(czlib_z_streamp strm,
                                  int level,
                                  int method,
                                  int windowBits,
@@ -546,7 +546,7 @@ ZEXTERN int ZEXPORT deflateInit2(z_streamp strm,
      This is another version of deflateInit with more compression options.  The
    fields zalloc, zfree and opaque must be initialized before by the caller.
 
-     The method parameter is the compression method.  It must be Z_DEFLATED in
+     The method parameter is the compression method.  It must be CZLIB_Z_DEFLATED in
    this version of the library.
 
      The windowBits parameter is the base two logarithm of the window size
@@ -586,29 +586,29 @@ ZEXTERN int ZEXPORT deflateInit2(z_streamp strm,
    as a function of windowBits and memLevel.
 
      The strategy parameter is used to tune the compression algorithm.  Use the
-   value Z_DEFAULT_STRATEGY for normal data, Z_FILTERED for data produced by a
-   filter (or predictor), Z_HUFFMAN_ONLY to force Huffman encoding only (no
-   string match), or Z_RLE to limit match distances to one (run-length
+   value CZLIB_Z_DEFAULT_STRATEGY for normal data, CZLIB_Z_FILTERED for data produced by a
+   filter (or predictor), CZLIB_Z_HUFFMAN_ONLY to force Huffman encoding only (no
+   string match), or CZLIB_Z_RLE to limit match distances to one (run-length
    encoding).  Filtered data consists mostly of small values with a somewhat
    random distribution.  In this case, the compression algorithm is tuned to
-   compress them better.  The effect of Z_FILTERED is to force more Huffman
+   compress them better.  The effect of CZLIB_Z_FILTERED is to force more Huffman
    coding and less string matching; it is somewhat intermediate between
-   Z_DEFAULT_STRATEGY and Z_HUFFMAN_ONLY.  Z_RLE is designed to be almost as
-   fast as Z_HUFFMAN_ONLY, but give better compression for PNG image data.  The
+   CZLIB_Z_DEFAULT_STRATEGY and CZLIB_Z_HUFFMAN_ONLY.  CZLIB_Z_RLE is designed to be almost as
+   fast as CZLIB_Z_HUFFMAN_ONLY, but give better compression for PNG image data.  The
    strategy parameter only affects the compression ratio but not the
    correctness of the compressed output even if it is not set appropriately.
-   Z_FIXED prevents the use of dynamic Huffman codes, allowing for a simpler
+   CZLIB_Z_FIXED prevents the use of dynamic Huffman codes, allowing for a simpler
    decoder for special applications.
 
-     deflateInit2 returns Z_OK if success, Z_MEM_ERROR if there was not enough
-   memory, Z_STREAM_ERROR if any parameter is invalid (such as an invalid
-   method), or Z_VERSION_ERROR if the zlib library version (zlib_version) is
-   incompatible with the version assumed by the caller (ZLIB_VERSION).  msg is
+     deflateInit2 returns CZLIB_Z_OK if success, CZLIB_Z_MEM_ERROR if there was not enough
+   memory, CZLIB_Z_STREAM_ERROR if any parameter is invalid (such as an invalid
+   method), or CZLIB_Z_VERSION_ERROR if the zlib library version (zlib_version) is
+   incompatible with the version assumed by the caller (CZLIB_ZLIB_VERSION).  msg is
    set to null if there is no error message.  deflateInit2 does not perform any
    compression: this will be done by deflate().
 */
 
-ZEXTERN int ZEXPORT deflateSetDictionary(z_streamp strm,
+ZEXTERN int ZEXPORT deflateSetDictionary(czlib_z_streamp strm,
                                          const Bytef *dictionary,
                                          uInt  dictLength);
 /*
@@ -619,7 +619,7 @@ ZEXTERN int ZEXPORT deflateSetDictionary(z_streamp strm,
    function must be called either before any call of deflate, or immediately
    after the completion of a deflate block, i.e. after all input has been
    consumed and all output has been delivered when using any of the flush
-   options Z_BLOCK, Z_PARTIAL_FLUSH, Z_SYNC_FLUSH, or Z_FULL_FLUSH.  The
+   options CZLIB_Z_BLOCK, CZLIB_Z_PARTIAL_FLUSH, CZLIB_Z_SYNC_FLUSH, or CZLIB_Z_FULL_FLUSH.  The
    compressor and decompressor must use exactly the same dictionary (see
    inflateSetDictionary).
 
@@ -645,14 +645,14 @@ ZEXTERN int ZEXPORT deflateSetDictionary(z_streamp strm,
    actually used by the compressor.) If a raw deflate was requested, then the
    Adler-32 value is not computed and strm->adler is not set.
 
-     deflateSetDictionary returns Z_OK if success, or Z_STREAM_ERROR if a
-   parameter is invalid (e.g.  dictionary being Z_NULL) or the stream state is
+     deflateSetDictionary returns CZLIB_Z_OK if success, or CZLIB_Z_STREAM_ERROR if a
+   parameter is invalid (e.g.  dictionary being CZLIB_Z_NULL) or the stream state is
    inconsistent (for example if deflate has already been called for this stream
    or if not at a block boundary for raw deflate).  deflateSetDictionary does
    not perform any compression: this will be done by deflate().
 */
 
-ZEXTERN int ZEXPORT deflateGetDictionary(z_streamp strm,
+ZEXTERN int ZEXPORT deflateGetDictionary(czlib_z_streamp strm,
                                          Bytef *dictionary,
                                          uInt  *dictLength);
 /*
@@ -660,8 +660,8 @@ ZEXTERN int ZEXPORT deflateGetDictionary(z_streamp strm,
    set to the number of bytes in the dictionary, and that many bytes are copied
    to dictionary.  dictionary must have enough space, where 32768 bytes is
    always enough.  If deflateGetDictionary() is called with dictionary equal to
-   Z_NULL, then only the dictionary length is returned, and nothing is copied.
-   Similarly, if dictLength is Z_NULL, then it is not set.
+   CZLIB_Z_NULL, then only the dictionary length is returned, and nothing is copied.
+   Similarly, if dictLength is CZLIB_Z_NULL, then it is not set.
 
      deflateGetDictionary() may return a length less than the window size, even
    when more than the window size in input has been provided. It may return up
@@ -670,12 +670,12 @@ ZEXTERN int ZEXPORT deflateGetDictionary(z_streamp strm,
    up to 258 bytes long. If the application needs the last window-size bytes of
    input, then that would need to be saved by the application outside of zlib.
 
-     deflateGetDictionary returns Z_OK on success, or Z_STREAM_ERROR if the
+     deflateGetDictionary returns CZLIB_Z_OK on success, or CZLIB_Z_STREAM_ERROR if the
    stream state is inconsistent.
 */
 
-ZEXTERN int ZEXPORT deflateCopy(z_streamp dest,
-                                z_streamp source);
+ZEXTERN int ZEXPORT deflateCopy(czlib_z_streamp dest,
+                                czlib_z_streamp source);
 /*
      Sets the destination stream as a complete copy of the source stream.
 
@@ -686,24 +686,24 @@ ZEXTERN int ZEXPORT deflateCopy(z_streamp dest,
    compression state which can be quite large, so this strategy is slow and can
    consume lots of memory.
 
-     deflateCopy returns Z_OK if success, Z_MEM_ERROR if there was not
-   enough memory, Z_STREAM_ERROR if the source stream state was inconsistent
-   (such as zalloc being Z_NULL).  msg is left unchanged in both source and
+     deflateCopy returns CZLIB_Z_OK if success, CZLIB_Z_MEM_ERROR if there was not
+   enough memory, CZLIB_Z_STREAM_ERROR if the source stream state was inconsistent
+   (such as zalloc being CZLIB_Z_NULL).  msg is left unchanged in both source and
    destination.
 */
 
-ZEXTERN int ZEXPORT deflateReset(z_streamp strm);
+ZEXTERN int ZEXPORT deflateReset(czlib_z_streamp strm);
 /*
      This function is equivalent to deflateEnd followed by deflateInit, but
    does not free and reallocate the internal compression state.  The stream
    will leave the compression level and any other attributes that may have been
    set unchanged.  total_in, total_out, adler, and msg are initialized.
 
-     deflateReset returns Z_OK if success, or Z_STREAM_ERROR if the source
-   stream state was inconsistent (such as zalloc or state being Z_NULL).
+     deflateReset returns CZLIB_Z_OK if success, or CZLIB_Z_STREAM_ERROR if the source
+   stream state was inconsistent (such as zalloc or state being CZLIB_Z_NULL).
 */
 
-ZEXTERN int ZEXPORT deflateParams(z_streamp strm,
+ZEXTERN int ZEXPORT deflateParams(czlib_z_streamp strm,
                                   int level,
                                   int strategy);
 /*
@@ -714,34 +714,34 @@ ZEXTERN int ZEXPORT deflateParams(z_streamp strm,
    If the compression approach (which is a function of the level) or the
    strategy is changed, and if there have been any deflate() calls since the
    state was initialized or reset, then the input available so far is
-   compressed with the old level and strategy using deflate(strm, Z_BLOCK).
+   compressed with the old level and strategy using deflate(strm, CZLIB_Z_BLOCK).
    There are three approaches for the compression levels 0, 1..3, and 4..9
    respectively.  The new level and strategy will take effect at the next call
    of deflate().
 
-     If a deflate(strm, Z_BLOCK) is performed by deflateParams(), and it does
+     If a deflate(strm, CZLIB_Z_BLOCK) is performed by deflateParams(), and it does
    not have enough output space to complete, then the parameter change will not
    take effect.  In this case, deflateParams() can be called again with the
    same parameters and more output space to try again.
 
      In order to assure a change in the parameters on the first try, the
-   deflate stream should be flushed using deflate() with Z_BLOCK or other flush
+   deflate stream should be flushed using deflate() with CZLIB_Z_BLOCK or other flush
    request until strm.avail_out is not zero, before calling deflateParams().
    Then no more input data should be provided before the deflateParams() call.
    If this is done, the old level and strategy will be applied to the data
    compressed before deflateParams(), and the new level and strategy will be
    applied to the data compressed after deflateParams().
 
-     deflateParams returns Z_OK on success, Z_STREAM_ERROR if the source stream
-   state was inconsistent or if a parameter was invalid, or Z_BUF_ERROR if
+     deflateParams returns CZLIB_Z_OK on success, CZLIB_Z_STREAM_ERROR if the source stream
+   state was inconsistent or if a parameter was invalid, or CZLIB_Z_BUF_ERROR if
    there was not enough output space to complete the compression of the
    available input data before a change in the strategy or approach.  Note that
-   in the case of a Z_BUF_ERROR, the parameters are not changed.  A return
-   value of Z_BUF_ERROR is not fatal, in which case deflateParams() can be
+   in the case of a CZLIB_Z_BUF_ERROR, the parameters are not changed.  A return
+   value of CZLIB_Z_BUF_ERROR is not fatal, in which case deflateParams() can be
    retried with more output space.
 */
 
-ZEXTERN int ZEXPORT deflateTune(z_streamp strm,
+ZEXTERN int ZEXPORT deflateTune(czlib_z_streamp strm,
                                 int good_length,
                                 int max_lazy,
                                 int nice_length,
@@ -755,10 +755,10 @@ ZEXTERN int ZEXPORT deflateTune(z_streamp strm,
    max_lazy, good_length, nice_length, and max_chain parameters.
 
      deflateTune() can be called after deflateInit() or deflateInit2(), and
-   returns Z_OK on success, or Z_STREAM_ERROR for an invalid deflate stream.
+   returns CZLIB_Z_OK on success, or CZLIB_Z_STREAM_ERROR for an invalid deflate stream.
  */
 
-ZEXTERN uLong ZEXPORT deflateBound(z_streamp strm,
+ZEXTERN uLong ZEXPORT deflateBound(czlib_z_streamp strm,
                                    uLong sourceLen);
 /*
      deflateBound() returns an upper bound on the compressed size after
@@ -767,13 +767,13 @@ ZEXTERN uLong ZEXPORT deflateBound(z_streamp strm,
    to allocate an output buffer for deflation in a single pass, and so would be
    called before deflate().  If that first deflate() call is provided the
    sourceLen input bytes, an output buffer allocated to the size returned by
-   deflateBound(), and the flush value Z_FINISH, then deflate() is guaranteed
-   to return Z_STREAM_END.  Note that it is possible for the compressed size to
+   deflateBound(), and the flush value CZLIB_Z_FINISH, then deflate() is guaranteed
+   to return CZLIB_Z_STREAM_END.  Note that it is possible for the compressed size to
    be larger than the value returned by deflateBound() if flush options other
-   than Z_FINISH or Z_NO_FLUSH are used.
+   than CZLIB_Z_FINISH or CZLIB_Z_NO_FLUSH are used.
 */
 
-ZEXTERN int ZEXPORT deflatePending(z_streamp strm,
+ZEXTERN int ZEXPORT deflatePending(czlib_z_streamp strm,
                                    unsigned *pending,
                                    int *bits);
 /*
@@ -782,13 +782,13 @@ ZEXTERN int ZEXPORT deflatePending(z_streamp strm,
    provided would be due to the available output space having being consumed.
    The number of bits of output not provided are between 0 and 7, where they
    await more bits to join them in order to fill out a full byte.  If pending
-   or bits are Z_NULL, then those values are not set.
+   or bits are CZLIB_Z_NULL, then those values are not set.
 
-     deflatePending returns Z_OK if success, or Z_STREAM_ERROR if the source
+     deflatePending returns CZLIB_Z_OK if success, or CZLIB_Z_STREAM_ERROR if the source
    stream state was inconsistent.
  */
 
-ZEXTERN int ZEXPORT deflatePrime(z_streamp strm,
+ZEXTERN int ZEXPORT deflatePrime(czlib_z_streamp strm,
                                  int bits,
                                  int value);
 /*
@@ -800,12 +800,12 @@ ZEXTERN int ZEXPORT deflatePrime(z_streamp strm,
    than or equal to 16, and that many of the least significant bits of value
    will be inserted in the output.
 
-     deflatePrime returns Z_OK if success, Z_BUF_ERROR if there was not enough
-   room in the internal buffer to insert the bits, or Z_STREAM_ERROR if the
+     deflatePrime returns CZLIB_Z_OK if success, CZLIB_Z_BUF_ERROR if there was not enough
+   room in the internal buffer to insert the bits, or CZLIB_Z_STREAM_ERROR if the
    source stream state was inconsistent.
 */
 
-ZEXTERN int ZEXPORT deflateSetHeader(z_streamp strm,
+ZEXTERN int ZEXPORT deflateSetHeader(czlib_z_streamp strm,
                                      gz_headerp head);
 /*
      deflateSetHeader() provides gzip header information for when a gzip
@@ -814,8 +814,8 @@ ZEXTERN int ZEXPORT deflateSetHeader(z_streamp strm,
    deflate().  The text, time, os, extra field, name, and comment information
    in the provided gz_header structure are written to the gzip header (xflag is
    ignored -- the extra flags are set according to the compression level).  The
-   caller must assure that, if not Z_NULL, name and comment are terminated with
-   a zero byte, and that if extra is not Z_NULL, that extra_len bytes are
+   caller must assure that, if not CZLIB_Z_NULL, name and comment are terminated with
+   a zero byte, and that if extra is not CZLIB_Z_NULL, that extra_len bytes are
    available there.  If hcrc is true, a gzip header crc is included.  Note that
    the current versions of the command-line version of gzip (up through version
    1.3.x) do not support header crc's, and will report that it is a "multi-part
@@ -826,12 +826,12 @@ ZEXTERN int ZEXPORT deflateSetHeader(z_streamp strm,
    extra, name, or comment fields.  The gzip header is returned to the default
    state by deflateReset().
 
-     deflateSetHeader returns Z_OK if success, or Z_STREAM_ERROR if the source
+     deflateSetHeader returns CZLIB_Z_OK if success, or CZLIB_Z_STREAM_ERROR if the source
    stream state was inconsistent.
 */
 
 /*
-ZEXTERN int ZEXPORT inflateInit2(z_streamp strm,
+ZEXTERN int ZEXPORT inflateInit2(czlib_z_streamp strm,
                                  int windowBits);
 
      This is another version of inflateInit with an extra parameter.  The
@@ -845,7 +845,7 @@ ZEXTERN int ZEXPORT inflateInit2(z_streamp strm,
    provided to deflateInit2() while compressing, or it must be equal to 15 if
    deflateInit2() was not used.  If a compressed stream with a larger window
    size is given as input, inflate() will return with the error code
-   Z_DATA_ERROR instead of trying to allocate a larger window.
+   CZLIB_Z_DATA_ERROR instead of trying to allocate a larger window.
 
      windowBits can also be zero to request that inflate use the window size in
    the zlib header of the compressed stream.
@@ -865,17 +865,17 @@ ZEXTERN int ZEXPORT inflateInit2(z_streamp strm,
      windowBits can also be greater than 15 for optional gzip decoding.  Add
    32 to windowBits to enable zlib and gzip decoding with automatic header
    detection, or add 16 to decode only the gzip format (the zlib format will
-   return a Z_DATA_ERROR).  If a gzip stream is being decoded, strm->adler is a
+   return a CZLIB_Z_DATA_ERROR).  If a gzip stream is being decoded, strm->adler is a
    CRC-32 instead of an Adler-32.  Unlike the gunzip utility and gzread() (see
    below), inflate() will *not* automatically decode concatenated gzip members.
-   inflate() will return Z_STREAM_END at the end of the gzip member.  The state
+   inflate() will return CZLIB_Z_STREAM_END at the end of the gzip member.  The state
    would need to be reset to continue decoding a subsequent gzip member.  This
    *must* be done if there is more data after a gzip member, in order for the
    decompression to be compliant with the gzip standard (RFC 1952).
 
-     inflateInit2 returns Z_OK if success, Z_MEM_ERROR if there was not enough
-   memory, Z_VERSION_ERROR if the zlib library version is incompatible with the
-   version assumed by the caller, or Z_STREAM_ERROR if the parameters are
+     inflateInit2 returns CZLIB_Z_OK if success, CZLIB_Z_MEM_ERROR if there was not enough
+   memory, CZLIB_Z_VERSION_ERROR if the zlib library version is incompatible with the
+   version assumed by the caller, or CZLIB_Z_STREAM_ERROR if the parameters are
    invalid, such as a null pointer to the structure.  msg is set to null if
    there is no error message.  inflateInit2 does not perform any decompression
    apart from possibly reading the zlib header if present: actual decompression
@@ -885,13 +885,13 @@ ZEXTERN int ZEXPORT inflateInit2(z_streamp strm,
    deferred until inflate() is called.
 */
 
-ZEXTERN int ZEXPORT inflateSetDictionary(z_streamp strm,
+ZEXTERN int ZEXPORT inflateSetDictionary(czlib_z_streamp strm,
                                          const Bytef *dictionary,
                                          uInt  dictLength);
 /*
      Initializes the decompression dictionary from the given uncompressed byte
    sequence.  This function must be called immediately after a call of inflate,
-   if that call returned Z_NEED_DICT.  The dictionary chosen by the compressor
+   if that call returned CZLIB_Z_NEED_DICT.  The dictionary chosen by the compressor
    can be determined from the Adler-32 value returned by that call of inflate.
    The compressor and decompressor must use exactly the same dictionary (see
    deflateSetDictionary).  For raw inflate, this function can be called at any
@@ -900,15 +900,15 @@ ZEXTERN int ZEXPORT inflateSetDictionary(z_streamp strm,
    will amend what's there.  The application must insure that the dictionary
    that was used for compression is provided.
 
-     inflateSetDictionary returns Z_OK if success, Z_STREAM_ERROR if a
-   parameter is invalid (e.g.  dictionary being Z_NULL) or the stream state is
-   inconsistent, Z_DATA_ERROR if the given dictionary doesn't match the
+     inflateSetDictionary returns CZLIB_Z_OK if success, CZLIB_Z_STREAM_ERROR if a
+   parameter is invalid (e.g.  dictionary being CZLIB_Z_NULL) or the stream state is
+   inconsistent, CZLIB_Z_DATA_ERROR if the given dictionary doesn't match the
    expected one (incorrect Adler-32 value).  inflateSetDictionary does not
    perform any decompression: this will be done by subsequent calls of
    inflate().
 */
 
-ZEXTERN int ZEXPORT inflateGetDictionary(z_streamp strm,
+ZEXTERN int ZEXPORT inflateGetDictionary(czlib_z_streamp strm,
                                          Bytef *dictionary,
                                          uInt  *dictLength);
 /*
@@ -916,34 +916,34 @@ ZEXTERN int ZEXPORT inflateGetDictionary(z_streamp strm,
    set to the number of bytes in the dictionary, and that many bytes are copied
    to dictionary.  dictionary must have enough space, where 32768 bytes is
    always enough.  If inflateGetDictionary() is called with dictionary equal to
-   Z_NULL, then only the dictionary length is returned, and nothing is copied.
-   Similarly, if dictLength is Z_NULL, then it is not set.
+   CZLIB_Z_NULL, then only the dictionary length is returned, and nothing is copied.
+   Similarly, if dictLength is CZLIB_Z_NULL, then it is not set.
 
-     inflateGetDictionary returns Z_OK on success, or Z_STREAM_ERROR if the
+     inflateGetDictionary returns CZLIB_Z_OK on success, or CZLIB_Z_STREAM_ERROR if the
    stream state is inconsistent.
 */
 
-ZEXTERN int ZEXPORT inflateSync(z_streamp strm);
+ZEXTERN int ZEXPORT inflateSync(czlib_z_streamp strm);
 /*
      Skips invalid compressed data until a possible full flush point (see above
-   for the description of deflate with Z_FULL_FLUSH) can be found, or until all
+   for the description of deflate with CZLIB_Z_FULL_FLUSH) can be found, or until all
    available input is skipped.  No output is provided.
 
      inflateSync searches for a 00 00 FF FF pattern in the compressed data.
    All full flush points have this pattern, but not all occurrences of this
    pattern are full flush points.
 
-     inflateSync returns Z_OK if a possible full flush point has been found,
-   Z_BUF_ERROR if no more input was provided, Z_DATA_ERROR if no flush point
-   has been found, or Z_STREAM_ERROR if the stream structure was inconsistent.
+     inflateSync returns CZLIB_Z_OK if a possible full flush point has been found,
+   CZLIB_Z_BUF_ERROR if no more input was provided, CZLIB_Z_DATA_ERROR if no flush point
+   has been found, or CZLIB_Z_STREAM_ERROR if the stream structure was inconsistent.
    In the success case, the application may save the current value of total_in
    which indicates where valid compressed data was found.  In the error case,
    the application may repeatedly call inflateSync, providing more input each
    time, until success or end of the input data.
 */
 
-ZEXTERN int ZEXPORT inflateCopy(z_streamp dest,
-                                z_streamp source);
+ZEXTERN int ZEXPORT inflateCopy(czlib_z_streamp dest,
+                                czlib_z_streamp source);
 /*
      Sets the destination stream as a complete copy of the source stream.
 
@@ -952,24 +952,24 @@ ZEXTERN int ZEXPORT inflateCopy(z_streamp dest,
    allowing restarting inflate at those points when randomly accessing the
    stream.
 
-     inflateCopy returns Z_OK if success, Z_MEM_ERROR if there was not
-   enough memory, Z_STREAM_ERROR if the source stream state was inconsistent
-   (such as zalloc being Z_NULL).  msg is left unchanged in both source and
+     inflateCopy returns CZLIB_Z_OK if success, CZLIB_Z_MEM_ERROR if there was not
+   enough memory, CZLIB_Z_STREAM_ERROR if the source stream state was inconsistent
+   (such as zalloc being CZLIB_Z_NULL).  msg is left unchanged in both source and
    destination.
 */
 
-ZEXTERN int ZEXPORT inflateReset(z_streamp strm);
+ZEXTERN int ZEXPORT inflateReset(czlib_z_streamp strm);
 /*
      This function is equivalent to inflateEnd followed by inflateInit,
    but does not free and reallocate the internal decompression state.  The
    stream will keep attributes that may have been set by inflateInit2.
    total_in, total_out, adler, and msg are initialized.
 
-     inflateReset returns Z_OK if success, or Z_STREAM_ERROR if the source
-   stream state was inconsistent (such as zalloc or state being Z_NULL).
+     inflateReset returns CZLIB_Z_OK if success, or CZLIB_Z_STREAM_ERROR if the source
+   stream state was inconsistent (such as zalloc or state being CZLIB_Z_NULL).
 */
 
-ZEXTERN int ZEXPORT inflateReset2(z_streamp strm,
+ZEXTERN int ZEXPORT inflateReset2(czlib_z_streamp strm,
                                   int windowBits);
 /*
      This function is the same as inflateReset, but it also permits changing
@@ -978,12 +978,12 @@ ZEXTERN int ZEXPORT inflateReset2(z_streamp strm,
    memory allocated for the window is freed, and the window will be reallocated
    by inflate() if needed.
 
-     inflateReset2 returns Z_OK if success, or Z_STREAM_ERROR if the source
-   stream state was inconsistent (such as zalloc or state being Z_NULL), or if
+     inflateReset2 returns CZLIB_Z_OK if success, or CZLIB_Z_STREAM_ERROR if the source
+   stream state was inconsistent (such as zalloc or state being CZLIB_Z_NULL), or if
    the windowBits parameter is invalid.
 */
 
-ZEXTERN int ZEXPORT inflatePrime(z_streamp strm,
+ZEXTERN int ZEXPORT inflatePrime(czlib_z_streamp strm,
                                  int bits,
                                  int value);
 /*
@@ -1000,11 +1000,11 @@ ZEXTERN int ZEXPORT inflatePrime(z_streamp strm,
    to clear out bits leftover after feeding inflate a block description prior
    to feeding inflate codes.
 
-     inflatePrime returns Z_OK if success, or Z_STREAM_ERROR if the source
+     inflatePrime returns CZLIB_Z_OK if success, or CZLIB_Z_STREAM_ERROR if the source
    stream state was inconsistent.
 */
 
-ZEXTERN long ZEXPORT inflateMark(z_streamp strm);
+ZEXTERN long ZEXPORT inflateMark(czlib_z_streamp strm);
 /*
      This function returns two values, one in the lower 16 bits of the return
    value, and the other in the remaining upper bits, obtained by shifting the
@@ -1026,13 +1026,13 @@ ZEXTERN long ZEXPORT inflateMark(z_streamp strm);
    access, which may be at bit positions, and to note those cases where the
    output of a code may span boundaries of random access blocks.  The current
    location in the input stream can be determined from avail_in and data_type
-   as noted in the description for the Z_BLOCK flush parameter for inflate.
+   as noted in the description for the CZLIB_Z_BLOCK flush parameter for inflate.
 
      inflateMark returns the value noted above, or -65536 if the provided
    source stream state was inconsistent.
 */
 
-ZEXTERN int ZEXPORT inflateGetHeader(z_streamp strm,
+ZEXTERN int ZEXPORT inflateGetHeader(czlib_z_streamp strm,
                                      gz_headerp head);
 /*
      inflateGetHeader() requests that gzip header information be stored in the
@@ -1041,22 +1041,22 @@ ZEXTERN int ZEXPORT inflateGetHeader(z_streamp strm,
    As inflate() processes the gzip stream, head->done is zero until the header
    is completed, at which time head->done is set to one.  If a zlib stream is
    being decoded, then head->done is set to -1 to indicate that there will be
-   no gzip header information forthcoming.  Note that Z_BLOCK or Z_TREES can be
+   no gzip header information forthcoming.  Note that CZLIB_Z_BLOCK or CZLIB_Z_TREES can be
    used to force inflate() to return immediately after header processing is
    complete and before any actual data is decompressed.
 
      The text, time, xflags, and os fields are filled in with the gzip header
    contents.  hcrc is set to true if there is a header CRC.  (The header CRC
-   was valid if done is set to one.) If extra is not Z_NULL, then extra_max
+   was valid if done is set to one.) If extra is not CZLIB_Z_NULL, then extra_max
    contains the maximum number of bytes to write to extra.  Once done is true,
    extra_len contains the actual extra field length, and extra contains the
    extra field, or that field truncated if extra_max is less than extra_len.
-   If name is not Z_NULL, then up to name_max characters are written there,
+   If name is not CZLIB_Z_NULL, then up to name_max characters are written there,
    terminated with a zero unless the length is greater than name_max.  If
-   comment is not Z_NULL, then up to comm_max characters are written there,
+   comment is not CZLIB_Z_NULL, then up to comm_max characters are written there,
    terminated with a zero unless the length is greater than comm_max.  When any
-   of extra, name, or comment are not Z_NULL and the respective field is not
-   present in the header, then that field is set to Z_NULL to signal its
+   of extra, name, or comment are not CZLIB_Z_NULL and the respective field is not
+   present in the header, then that field is set to CZLIB_Z_NULL to signal its
    absence.  This allows the use of deflateSetHeader() with the returned
    structure to duplicate the header.  However if those fields are set to
    allocated memory, then the application will need to save those pointers
@@ -1068,17 +1068,17 @@ ZEXTERN int ZEXPORT inflateGetHeader(z_streamp strm,
    information.  The application would need to call inflateGetHeader() again to
    retrieve the header from the next gzip stream.
 
-     inflateGetHeader returns Z_OK if success, or Z_STREAM_ERROR if the source
+     inflateGetHeader returns CZLIB_Z_OK if success, or CZLIB_Z_STREAM_ERROR if the source
    stream state was inconsistent.
 */
 
 /*
-ZEXTERN int ZEXPORT inflateBackInit(z_streamp strm, int windowBits,
+ZEXTERN int ZEXPORT inflateBackInit(czlib_z_streamp strm, int windowBits,
                                     unsigned char FAR *window);
 
      Initialize the internal stream state for decompression using inflateBack()
    calls.  The fields zalloc, zfree and opaque in strm must be initialized
-   before the call.  If zalloc and zfree are Z_NULL, then the default library-
+   before the call.  If zalloc and zfree are CZLIB_Z_NULL, then the default library-
    derived memory allocation routines are used.  windowBits is the base two
    logarithm of the window size, in the range 8..15.  window is a caller
    supplied buffer of that size.  Except for special applications where it is
@@ -1088,17 +1088,17 @@ ZEXTERN int ZEXPORT inflateBackInit(z_streamp strm, int windowBits,
 
      See inflateBack() for the usage of these routines.
 
-     inflateBackInit will return Z_OK on success, Z_STREAM_ERROR if any of
-   the parameters are invalid, Z_MEM_ERROR if the internal state could not be
-   allocated, or Z_VERSION_ERROR if the version of the library does not match
+     inflateBackInit will return CZLIB_Z_OK on success, CZLIB_Z_STREAM_ERROR if any of
+   the parameters are invalid, CZLIB_Z_MEM_ERROR if the internal state could not be
+   allocated, or CZLIB_Z_VERSION_ERROR if the version of the library does not match
    the version of the header file.
 */
 
 typedef unsigned (*in_func)(void FAR *,
-                            z_const unsigned char FAR * FAR *);
+                            czlib_z_const unsigned char FAR * FAR *);
 typedef int (*out_func)(void FAR *, unsigned char FAR *, unsigned);
 
-ZEXTERN int ZEXPORT inflateBack(z_streamp strm,
+ZEXTERN int ZEXPORT inflateBack(czlib_z_streamp strm,
                                 in_func in, void FAR *in_desc,
                                 out_func out, void FAR *out_desc);
 /*
@@ -1144,8 +1144,8 @@ ZEXTERN int ZEXPORT inflateBack(z_streamp strm,
      For convenience, inflateBack() can be provided input on the first call by
    setting strm->next_in and strm->avail_in.  If that input is exhausted, then
    in() will be called.  Therefore strm->next_in must be initialized before
-   calling inflateBack().  If strm->next_in is Z_NULL, then in() will be called
-   immediately for input.  If strm->next_in is not Z_NULL, then strm->avail_in
+   calling inflateBack().  If strm->next_in is CZLIB_Z_NULL, then in() will be called
+   immediately for input.  If strm->next_in is not CZLIB_Z_NULL, then strm->avail_in
    must also be initialized, and then if strm->avail_in is not zero, input will
    initially be taken from strm->next_in[0 ..  strm->avail_in - 1].
 
@@ -1156,23 +1156,23 @@ ZEXTERN int ZEXPORT inflateBack(z_streamp strm,
 
      On return, inflateBack() will set strm->next_in and strm->avail_in to
    pass back any unused input that was provided by the last in() call.  The
-   return values of inflateBack() can be Z_STREAM_END on success, Z_BUF_ERROR
-   if in() or out() returned an error, Z_DATA_ERROR if there was a format error
+   return values of inflateBack() can be CZLIB_Z_STREAM_END on success, CZLIB_Z_BUF_ERROR
+   if in() or out() returned an error, CZLIB_Z_DATA_ERROR if there was a format error
    in the deflate stream (in which case strm->msg is set to indicate the nature
-   of the error), or Z_STREAM_ERROR if the stream was not properly initialized.
-   In the case of Z_BUF_ERROR, an input or output error can be distinguished
-   using strm->next_in which will be Z_NULL only if in() returned an error.  If
-   strm->next_in is not Z_NULL, then the Z_BUF_ERROR was due to out() returning
+   of the error), or CZLIB_Z_STREAM_ERROR if the stream was not properly initialized.
+   In the case of CZLIB_Z_BUF_ERROR, an input or output error can be distinguished
+   using strm->next_in which will be CZLIB_Z_NULL only if in() returned an error.  If
+   strm->next_in is not CZLIB_Z_NULL, then the CZLIB_Z_BUF_ERROR was due to out() returning
    non-zero.  (in() will always be called before out(), so strm->next_in is
    assured to be defined if out() returns non-zero.)  Note that inflateBack()
-   cannot return Z_OK.
+   cannot return CZLIB_Z_OK.
 */
 
-ZEXTERN int ZEXPORT inflateBackEnd(z_streamp strm);
+ZEXTERN int ZEXPORT inflateBackEnd(czlib_z_streamp strm);
 /*
      All memory allocated by inflateBackInit() is freed.
 
-     inflateBackEnd() returns Z_OK on success, or Z_STREAM_ERROR if the stream
+     inflateBackEnd() returns CZLIB_Z_OK on success, or CZLIB_Z_STREAM_ERROR if the stream
    state was inconsistent.
 */
 
@@ -1183,12 +1183,12 @@ ZEXTERN uLong ZEXPORT zlibCompileFlags(void);
      1.0: size of uInt
      3.2: size of uLong
      5.4: size of voidpf (pointer)
-     7.6: size of z_off_t
+     7.6: size of czlib_z_off_t
 
     Compiler, assembler, and debug options:
-     8: ZLIB_DEBUG
+     8: CZLIB_ZLIB_DEBUG
      9: ASMV or ASMINF -- use ASM code
-     10: ZLIB_WINAPI -- exported functions use the WINAPI calling convention
+     10: CZLIB_ZLIB_WINAPI -- exported functions use the WINAPI calling convention
      11: 0 (reserved)
 
     One-time table building (smaller code, but not thread-safe if true):
@@ -1217,7 +1217,7 @@ ZEXTERN uLong ZEXPORT zlibCompileFlags(void);
      27-31: 0 (reserved)
  */
 
-#ifndef Z_SOLO
+#ifndef CZLIB_Z_SOLO
 
                         /* utility functions */
 
@@ -1237,10 +1237,10 @@ ZEXTERN int ZEXPORT compress(Bytef *dest,   uLongf *destLen,
    of the destination buffer, which must be at least the value returned by
    compressBound(sourceLen).  Upon exit, destLen is the actual size of the
    compressed data.  compress() is equivalent to compress2() with a level
-   parameter of Z_DEFAULT_COMPRESSION.
+   parameter of CZLIB_Z_DEFAULT_COMPRESSION.
 
-     compress returns Z_OK if success, Z_MEM_ERROR if there was not
-   enough memory, Z_BUF_ERROR if there was not enough room in the output
+     compress returns CZLIB_Z_OK if success, CZLIB_Z_MEM_ERROR if there was not
+   enough memory, CZLIB_Z_BUF_ERROR if there was not enough room in the output
    buffer.
 */
 
@@ -1255,9 +1255,9 @@ ZEXTERN int ZEXPORT compress2(Bytef *dest,   uLongf *destLen,
    compressBound(sourceLen).  Upon exit, destLen is the actual size of the
    compressed data.
 
-     compress2 returns Z_OK if success, Z_MEM_ERROR if there was not enough
-   memory, Z_BUF_ERROR if there was not enough room in the output buffer,
-   Z_STREAM_ERROR if the level parameter is invalid.
+     compress2 returns CZLIB_Z_OK if success, CZLIB_Z_MEM_ERROR if there was not enough
+   memory, CZLIB_Z_BUF_ERROR if there was not enough room in the output buffer,
+   CZLIB_Z_STREAM_ERROR if the level parameter is invalid.
 */
 
 ZEXTERN uLong ZEXPORT compressBound(uLong sourceLen);
@@ -1278,9 +1278,9 @@ ZEXTERN int ZEXPORT uncompress(Bytef *dest,   uLongf *destLen,
    mechanism outside the scope of this compression library.) Upon exit, destLen
    is the actual size of the uncompressed data.
 
-     uncompress returns Z_OK if success, Z_MEM_ERROR if there was not
-   enough memory, Z_BUF_ERROR if there was not enough room in the output
-   buffer, or Z_DATA_ERROR if the input data was corrupted or incomplete.  In
+     uncompress returns CZLIB_Z_OK if success, CZLIB_Z_MEM_ERROR if there was not
+   enough memory, CZLIB_Z_BUF_ERROR if there was not enough room in the output
+   buffer, or CZLIB_Z_DATA_ERROR if the input data was corrupted or incomplete.  In
    the case where there is not enough room, uncompress() will fill the output
    buffer with the uncompressed data up to that point.
 */
@@ -1387,9 +1387,9 @@ ZEXTERN int ZEXPORT gzsetparams(gzFile file, int level, int strategy);
    description of deflateInit2 for the meaning of these parameters. Previously
    provided data is flushed before applying the parameter changes.
 
-     gzsetparams returns Z_OK if success, Z_STREAM_ERROR if the file was not
-   opened for writing, Z_ERRNO if there is an error writing the flushed data,
-   or Z_MEM_ERROR if there is a memory allocation error.
+     gzsetparams returns CZLIB_Z_OK if success, CZLIB_Z_STREAM_ERROR if the file was not
+   opened for writing, CZLIB_Z_ERRNO if there is an error writing the flushed data,
+   or CZLIB_Z_MEM_ERROR if there is a memory allocation error.
 */
 
 ZEXTERN int ZEXPORT gzread(gzFile file, voidp buf, unsigned len);
@@ -1406,37 +1406,37 @@ ZEXTERN int ZEXPORT gzread(gzFile file, voidp buf, unsigned len);
 
      gzread can be used to read a gzip file that is being concurrently written.
    Upon reaching the end of the input, gzread will return with the available
-   data.  If the error code returned by gzerror is Z_OK or Z_BUF_ERROR, then
+   data.  If the error code returned by gzerror is CZLIB_Z_OK or CZLIB_Z_BUF_ERROR, then
    gzclearerr can be used to clear the end of file indicator in order to permit
-   gzread to be tried again.  Z_OK indicates that a gzip stream was completed
-   on the last gzread.  Z_BUF_ERROR indicates that the input file ended in the
+   gzread to be tried again.  CZLIB_Z_OK indicates that a gzip stream was completed
+   on the last gzread.  CZLIB_Z_BUF_ERROR indicates that the input file ended in the
    middle of a gzip stream.  Note that gzread does not return -1 in the event
    of an incomplete gzip stream.  This error is deferred until gzclose(), which
-   will return Z_BUF_ERROR if the last gzread ended in the middle of a gzip
+   will return CZLIB_Z_BUF_ERROR if the last gzread ended in the middle of a gzip
    stream.  Alternatively, gzerror can be used before gzclose to detect this
    case.
 
      gzread returns the number of uncompressed bytes actually read, less than
    len for end of file, or -1 for error.  If len is too large to fit in an int,
    then nothing is read, -1 is returned, and the error state is set to
-   Z_STREAM_ERROR.
+   CZLIB_Z_STREAM_ERROR.
 */
 
-ZEXTERN z_size_t ZEXPORT gzfread(voidp buf, z_size_t size, z_size_t nitems,
+ZEXTERN czlib_z_size_t ZEXPORT gzfread(voidp buf, czlib_z_size_t size, czlib_z_size_t nitems,
                                  gzFile file);
 /*
      Read and decompress up to nitems items of size size from file into buf,
    otherwise operating as gzread() does.  This duplicates the interface of
    stdio's fread(), with size_t request and return types.  If the library
-   defines size_t, then z_size_t is identical to size_t.  If not, then z_size_t
+   defines size_t, then czlib_z_size_t is identical to size_t.  If not, then czlib_z_size_t
    is an unsigned integer type that can contain a pointer.
 
      gzfread() returns the number of full items read of size size, or zero if
    the end of the file was reached and a full item could not be read, or if
    there was an error.  gzerror() must be consulted if zero is returned in
    order to determine if there was an error.  If the multiplication of size and
-   nitems overflows, i.e. the product does not fit in a z_size_t, then nothing
-   is read, zero is returned, and the error state is set to Z_STREAM_ERROR.
+   nitems overflows, i.e. the product does not fit in a czlib_z_size_t, then nothing
+   is read, zero is returned, and the error state is set to CZLIB_Z_STREAM_ERROR.
 
      In the event that the end of file is reached and only a partial item is
    available at the end, i.e. the remaining uncompressed data length is not a
@@ -1454,18 +1454,18 @@ ZEXTERN int ZEXPORT gzwrite(gzFile file, voidpc buf, unsigned len);
    returns the number of uncompressed bytes written or 0 in case of error.
 */
 
-ZEXTERN z_size_t ZEXPORT gzfwrite(voidpc buf, z_size_t size,
-                                  z_size_t nitems, gzFile file);
+ZEXTERN czlib_z_size_t ZEXPORT gzfwrite(voidpc buf, czlib_z_size_t size,
+                                  czlib_z_size_t nitems, gzFile file);
 /*
      Compress and write nitems items of size size from buf to file, duplicating
    the interface of stdio's fwrite(), with size_t request and return types.  If
-   the library defines size_t, then z_size_t is identical to size_t.  If not,
-   then z_size_t is an unsigned integer type that can contain a pointer.
+   the library defines size_t, then czlib_z_size_t is identical to size_t.  If not,
+   then czlib_z_size_t is an unsigned integer type that can contain a pointer.
 
      gzfwrite() returns the number of full items written of size size, or zero
    if there was an error.  If the multiplication of size and nitems overflows,
-   i.e. the product does not fit in a z_size_t, then nothing is written, zero
-   is returned, and the error state is set to Z_STREAM_ERROR.
+   i.e. the product does not fit in a czlib_z_size_t, then nothing is written, zero
+   is returned, and the error state is set to CZLIB_Z_STREAM_ERROR.
 */
 
 ZEXTERN int ZEXPORTVA gzprintf(gzFile file, const char *format, ...);
@@ -1538,7 +1538,7 @@ ZEXTERN int ZEXPORT gzflush(gzFile file, int flush);
    deflate() function.  The return value is the zlib error number (see function
    gzerror below).  gzflush is only permitted when writing.
 
-     If the flush parameter is Z_FINISH, the remaining data is written and the
+     If the flush parameter is CZLIB_Z_FINISH, the remaining data is written and the
    gzip stream is completed in the output.  If gzwrite() is called again, a new
    gzip stream will be started in the output.  gzread() is able to read such
    concatenated gzip streams.
@@ -1548,8 +1548,8 @@ ZEXTERN int ZEXPORT gzflush(gzFile file, int flush);
 */
 
 /*
-ZEXTERN z_off_t ZEXPORT gzseek(gzFile file,
-                               z_off_t offset, int whence);
+ZEXTERN czlib_z_off_t ZEXPORT gzseek(gzFile file,
+                               czlib_z_off_t offset, int whence);
 
      Set the starting position to offset relative to whence for the next gzread
    or gzwrite on file.  The offset represents a number of bytes in the
@@ -1575,7 +1575,7 @@ ZEXTERN int ZEXPORT    gzrewind(gzFile file);
 */
 
 /*
-ZEXTERN z_off_t ZEXPORT    gztell(gzFile file);
+ZEXTERN czlib_z_off_t ZEXPORT    gztell(gzFile file);
 
      Return the starting position for the next gzread or gzwrite on file.
    This position represents a number of bytes in the uncompressed data stream,
@@ -1586,7 +1586,7 @@ ZEXTERN z_off_t ZEXPORT    gztell(gzFile file);
 */
 
 /*
-ZEXTERN z_off_t ZEXPORT gzoffset(gzFile file);
+ZEXTERN czlib_z_off_t ZEXPORT gzoffset(gzFile file);
 
      Return the current compressed (actual) read or write offset of file.  This
    offset includes the count of bytes that precede the gzip stream, for example
@@ -1639,9 +1639,9 @@ ZEXTERN int ZEXPORT    gzclose(gzFile file);
    gzclose must not be called more than once on the same file, just as free
    must not be called more than once on the same allocation.
 
-     gzclose will return Z_STREAM_ERROR if file is not valid, Z_ERRNO on a
-   file operation error, Z_MEM_ERROR if out of memory, Z_BUF_ERROR if the
-   last read ended in the middle of a gzip stream, or Z_OK on success.
+     gzclose will return CZLIB_Z_STREAM_ERROR if file is not valid, CZLIB_Z_ERRNO on a
+   file operation error, CZLIB_Z_MEM_ERROR if out of memory, CZLIB_Z_BUF_ERROR if the
+   last read ended in the middle of a gzip stream, or CZLIB_Z_OK on success.
 */
 
 ZEXTERN int ZEXPORT gzclose_r(gzFile file);
@@ -1660,7 +1660,7 @@ ZEXTERN const char * ZEXPORT gzerror(gzFile file, int *errnum);
 /*
      Return the error message for the last error which occurred on file.
    errnum is set to zlib error number.  If an error occurred in the file system
-   and not in the compression library, errnum is set to Z_ERRNO and the
+   and not in the compression library, errnum is set to CZLIB_Z_ERRNO and the
    application may consult errno to get the exact error code.
 
      The application must not modify the returned string.  Future calls to
@@ -1679,7 +1679,7 @@ ZEXTERN void ZEXPORT gzclearerr(gzFile file);
    file that is being written concurrently.
 */
 
-#endif /* !Z_SOLO */
+#endif /* !CZLIB_Z_SOLO */
 
                         /* checksum functions */
 
@@ -1693,7 +1693,7 @@ ZEXTERN uLong ZEXPORT adler32(uLong adler, const Bytef *buf, uInt len);
 /*
      Update a running Adler-32 checksum with the bytes buf[0..len-1] and
    return the updated checksum. An Adler-32 value is in the range of a 32-bit
-   unsigned integer. If buf is Z_NULL, this function returns the required
+   unsigned integer. If buf is CZLIB_Z_NULL, this function returns the required
    initial value for the checksum.
 
      An Adler-32 checksum is almost as reliable as a CRC-32 but can be computed
@@ -1701,7 +1701,7 @@ ZEXTERN uLong ZEXPORT adler32(uLong adler, const Bytef *buf, uInt len);
 
    Usage example:
 
-     uLong adler = adler32(0L, Z_NULL, 0);
+     uLong adler = adler32(0L, CZLIB_Z_NULL, 0);
 
      while (read_buffer(buffer, length) != EOF) {
        adler = adler32(adler, buffer, length);
@@ -1710,20 +1710,20 @@ ZEXTERN uLong ZEXPORT adler32(uLong adler, const Bytef *buf, uInt len);
 */
 
 ZEXTERN uLong ZEXPORT adler32_z(uLong adler, const Bytef *buf,
-                                z_size_t len);
+                                czlib_z_size_t len);
 /*
      Same as adler32(), but with a size_t length.
 */
 
 /*
 ZEXTERN uLong ZEXPORT adler32_combine(uLong adler1, uLong adler2,
-                                      z_off_t len2);
+                                      czlib_z_off_t len2);
 
      Combine two Adler-32 checksums into one.  For two sequences of bytes, seq1
    and seq2 with lengths len1 and len2, Adler-32 checksums were calculated for
    each, adler1 and adler2.  adler32_combine() returns the Adler-32 checksum of
    seq1 and seq2 concatenated, requiring only adler1, adler2, and len2.  Note
-   that the z_off_t type (like off_t) is a signed integer.  If len2 is
+   that the czlib_z_off_t type (like off_t) is a signed integer.  If len2 is
    negative, the result has no meaning or utility.
 */
 
@@ -1731,13 +1731,13 @@ ZEXTERN uLong ZEXPORT crc32(uLong crc, const Bytef *buf, uInt len);
 /*
      Update a running CRC-32 with the bytes buf[0..len-1] and return the
    updated CRC-32. A CRC-32 value is in the range of a 32-bit unsigned integer.
-   If buf is Z_NULL, this function returns the required initial value for the
+   If buf is CZLIB_Z_NULL, this function returns the required initial value for the
    crc. Pre- and post-conditioning (one's complement) is performed within this
    function so it shouldn't be done by the application.
 
    Usage example:
 
-     uLong crc = crc32(0L, Z_NULL, 0);
+     uLong crc = crc32(0L, CZLIB_Z_NULL, 0);
 
      while (read_buffer(buffer, length) != EOF) {
        crc = crc32(crc, buffer, length);
@@ -1746,13 +1746,13 @@ ZEXTERN uLong ZEXPORT crc32(uLong crc, const Bytef *buf, uInt len);
 */
 
 ZEXTERN uLong ZEXPORT crc32_z(uLong crc, const Bytef *buf,
-                              z_size_t len);
+                              czlib_z_size_t len);
 /*
      Same as crc32(), but with a size_t length.
 */
 
 /*
-ZEXTERN uLong ZEXPORT crc32_combine(uLong crc1, uLong crc2, z_off_t len2);
+ZEXTERN uLong ZEXPORT crc32_combine(uLong crc1, uLong crc2, czlib_z_off_t len2);
 
      Combine two CRC-32 check values into one.  For two sequences of bytes,
    seq1 and seq2 with lengths len1 and len2, CRC-32 check values were
@@ -1762,7 +1762,7 @@ ZEXTERN uLong ZEXPORT crc32_combine(uLong crc1, uLong crc2, z_off_t len2);
 */
 
 /*
-ZEXTERN uLong ZEXPORT crc32_combine_gen(z_off_t len2);
+ZEXTERN uLong ZEXPORT crc32_combine_gen(czlib_z_off_t len2);
 
      Return the operator corresponding to length len2, to be used with
    crc32_combine_op(). len2 must be non-negative.
@@ -1779,53 +1779,53 @@ ZEXTERN uLong ZEXPORT crc32_combine_op(uLong crc1, uLong crc2, uLong op);
                         /* various hacks, don't look :) */
 
 /* deflateInit and inflateInit are macros to allow checking the zlib version
- * and the compiler's view of z_stream:
+ * and the compiler's view of czlib_z_stream:
  */
-ZEXTERN int ZEXPORT deflateInit_(z_streamp strm, int level,
+ZEXTERN int ZEXPORT deflateInit_(czlib_z_streamp strm, int level,
                                  const char *version, int stream_size);
-ZEXTERN int ZEXPORT inflateInit_(z_streamp strm,
+ZEXTERN int ZEXPORT inflateInit_(czlib_z_streamp strm,
                                  const char *version, int stream_size);
-ZEXTERN int ZEXPORT deflateInit2_(z_streamp strm, int  level, int  method,
+ZEXTERN int ZEXPORT deflateInit2_(czlib_z_streamp strm, int  level, int  method,
                                   int windowBits, int memLevel,
                                   int strategy, const char *version,
                                   int stream_size);
-ZEXTERN int ZEXPORT inflateInit2_(z_streamp strm, int  windowBits,
+ZEXTERN int ZEXPORT inflateInit2_(czlib_z_streamp strm, int  windowBits,
                                   const char *version, int stream_size);
-ZEXTERN int ZEXPORT inflateBackInit_(z_streamp strm, int windowBits,
+ZEXTERN int ZEXPORT inflateBackInit_(czlib_z_streamp strm, int windowBits,
                                      unsigned char FAR *window,
                                      const char *version,
                                      int stream_size);
-#ifdef Z_PREFIX_SET
-#  define z_deflateInit(strm, level) \
-          deflateInit_((strm), (level), ZLIB_VERSION, (int)sizeof(z_stream))
-#  define z_inflateInit(strm) \
-          inflateInit_((strm), ZLIB_VERSION, (int)sizeof(z_stream))
-#  define z_deflateInit2(strm, level, method, windowBits, memLevel, strategy) \
+#ifdef CZLIB_Z_PREFIX_SET
+#  define czlib_z_deflateInit(strm, level) \
+          deflateInit_((strm), (level), CZLIB_ZLIB_VERSION, (int)sizeof(czlib_z_stream))
+#  define czlib_z_inflateInit(strm) \
+          inflateInit_((strm), CZLIB_ZLIB_VERSION, (int)sizeof(czlib_z_stream))
+#  define czlib_z_deflateInit2(strm, level, method, windowBits, memLevel, strategy) \
           deflateInit2_((strm),(level),(method),(windowBits),(memLevel),\
-                        (strategy), ZLIB_VERSION, (int)sizeof(z_stream))
-#  define z_inflateInit2(strm, windowBits) \
-          inflateInit2_((strm), (windowBits), ZLIB_VERSION, \
-                        (int)sizeof(z_stream))
-#  define z_inflateBackInit(strm, windowBits, window) \
+                        (strategy), CZLIB_ZLIB_VERSION, (int)sizeof(czlib_z_stream))
+#  define czlib_z_inflateInit2(strm, windowBits) \
+          inflateInit2_((strm), (windowBits), CZLIB_ZLIB_VERSION, \
+                        (int)sizeof(czlib_z_stream))
+#  define czlib_z_inflateBackInit(strm, windowBits, window) \
           inflateBackInit_((strm), (windowBits), (window), \
-                           ZLIB_VERSION, (int)sizeof(z_stream))
+                           CZLIB_ZLIB_VERSION, (int)sizeof(czlib_z_stream))
 #else
 #  define deflateInit(strm, level) \
-          deflateInit_((strm), (level), ZLIB_VERSION, (int)sizeof(z_stream))
+          deflateInit_((strm), (level), CZLIB_ZLIB_VERSION, (int)sizeof(czlib_z_stream))
 #  define inflateInit(strm) \
-          inflateInit_((strm), ZLIB_VERSION, (int)sizeof(z_stream))
+          inflateInit_((strm), CZLIB_ZLIB_VERSION, (int)sizeof(czlib_z_stream))
 #  define deflateInit2(strm, level, method, windowBits, memLevel, strategy) \
           deflateInit2_((strm),(level),(method),(windowBits),(memLevel),\
-                        (strategy), ZLIB_VERSION, (int)sizeof(z_stream))
+                        (strategy), CZLIB_ZLIB_VERSION, (int)sizeof(czlib_z_stream))
 #  define inflateInit2(strm, windowBits) \
-          inflateInit2_((strm), (windowBits), ZLIB_VERSION, \
-                        (int)sizeof(z_stream))
+          inflateInit2_((strm), (windowBits), CZLIB_ZLIB_VERSION, \
+                        (int)sizeof(czlib_z_stream))
 #  define inflateBackInit(strm, windowBits, window) \
           inflateBackInit_((strm), (windowBits), (window), \
-                           ZLIB_VERSION, (int)sizeof(z_stream))
+                           CZLIB_ZLIB_VERSION, (int)sizeof(czlib_z_stream))
 #endif
 
-#ifndef Z_SOLO
+#ifndef CZLIB_Z_SOLO
 
 /* gzgetc() macro and its supporting function and exposed data structure.  Note
  * that the real internal state is much larger than the exposed structure.
@@ -1837,12 +1837,12 @@ ZEXTERN int ZEXPORT inflateBackInit_(z_streamp strm, int windowBits,
 struct gzFile_s {
     unsigned have;
     unsigned char *next;
-    z_off64_t pos;
+    czlib_z_off64_t pos;
 };
 ZEXTERN int ZEXPORT gzgetc_(gzFile file);       /* backward compatibility */
-#ifdef Z_PREFIX_SET
-#  undef z_gzgetc
-#  define z_gzgetc(g) \
+#ifdef CZLIB_Z_PREFIX_SET
+#  undef czlib_z_gzgetc
+#  define czlib_z_gzgetc(g) \
           ((g)->have ? ((g)->have--, (g)->pos++, *((g)->next)++) : (gzgetc)(g))
 #else
 #  define gzgetc(g) \
@@ -1855,25 +1855,25 @@ ZEXTERN int ZEXPORT gzgetc_(gzFile file);       /* backward compatibility */
  * functions are changed to 64 bits) -- in case these are set on systems
  * without large file support, _LFS64_LARGEFILE must also be true
  */
-#ifdef Z_LARGE64
+#ifdef CZLIB_Z_LARGE64
    ZEXTERN gzFile ZEXPORT gzopen64(const char *, const char *);
-   ZEXTERN z_off64_t ZEXPORT gzseek64(gzFile, z_off64_t, int);
-   ZEXTERN z_off64_t ZEXPORT gztell64(gzFile);
-   ZEXTERN z_off64_t ZEXPORT gzoffset64(gzFile);
-   ZEXTERN uLong ZEXPORT adler32_combine64(uLong, uLong, z_off64_t);
-   ZEXTERN uLong ZEXPORT crc32_combine64(uLong, uLong, z_off64_t);
-   ZEXTERN uLong ZEXPORT crc32_combine_gen64(z_off64_t);
+   ZEXTERN czlib_z_off64_t ZEXPORT gzseek64(gzFile, czlib_z_off64_t, int);
+   ZEXTERN czlib_z_off64_t ZEXPORT gztell64(gzFile);
+   ZEXTERN czlib_z_off64_t ZEXPORT gzoffset64(gzFile);
+   ZEXTERN uLong ZEXPORT adler32_combine64(uLong, uLong, czlib_z_off64_t);
+   ZEXTERN uLong ZEXPORT crc32_combine64(uLong, uLong, czlib_z_off64_t);
+   ZEXTERN uLong ZEXPORT crc32_combine_gen64(czlib_z_off64_t);
 #endif
 
-#if !defined(ZLIB_INTERNAL) && defined(Z_WANT64)
-#  ifdef Z_PREFIX_SET
-#    define z_gzopen z_gzopen64
-#    define z_gzseek z_gzseek64
-#    define z_gztell z_gztell64
-#    define z_gzoffset z_gzoffset64
-#    define z_adler32_combine z_adler32_combine64
-#    define z_crc32_combine z_crc32_combine64
-#    define z_crc32_combine_gen z_crc32_combine_gen64
+#if !defined(CZLIB_ZLIB_INTERNAL) && defined(CZLIB_Z_WANT64)
+#  ifdef CZLIB_Z_PREFIX_SET
+#    define czlib_z_gzopen czlib_z_gzopen64
+#    define czlib_z_gzseek czlib_z_gzseek64
+#    define czlib_z_gztell czlib_z_gztell64
+#    define czlib_z_gzoffset czlib_z_gzoffset64
+#    define czlib_z_adler32_combine czlib_z_adler32_combine64
+#    define czlib_z_crc32_combine czlib_z_crc32_combine64
+#    define czlib_z_crc32_combine_gen czlib_z_crc32_combine_gen64
 #  else
 #    define gzopen gzopen64
 #    define gzseek gzseek64
@@ -1883,48 +1883,48 @@ ZEXTERN int ZEXPORT gzgetc_(gzFile file);       /* backward compatibility */
 #    define crc32_combine crc32_combine64
 #    define crc32_combine_gen crc32_combine_gen64
 #  endif
-#  ifndef Z_LARGE64
+#  ifndef CZLIB_Z_LARGE64
      ZEXTERN gzFile ZEXPORT gzopen64(const char *, const char *);
-     ZEXTERN z_off_t ZEXPORT gzseek64(gzFile, z_off_t, int);
-     ZEXTERN z_off_t ZEXPORT gztell64(gzFile);
-     ZEXTERN z_off_t ZEXPORT gzoffset64(gzFile);
-     ZEXTERN uLong ZEXPORT adler32_combine64(uLong, uLong, z_off_t);
-     ZEXTERN uLong ZEXPORT crc32_combine64(uLong, uLong, z_off_t);
-     ZEXTERN uLong ZEXPORT crc32_combine_gen64(z_off_t);
+     ZEXTERN czlib_z_off_t ZEXPORT gzseek64(gzFile, czlib_z_off_t, int);
+     ZEXTERN czlib_z_off_t ZEXPORT gztell64(gzFile);
+     ZEXTERN czlib_z_off_t ZEXPORT gzoffset64(gzFile);
+     ZEXTERN uLong ZEXPORT adler32_combine64(uLong, uLong, czlib_z_off_t);
+     ZEXTERN uLong ZEXPORT crc32_combine64(uLong, uLong, czlib_z_off_t);
+     ZEXTERN uLong ZEXPORT crc32_combine_gen64(czlib_z_off_t);
 #  endif
 #else
    ZEXTERN gzFile ZEXPORT gzopen(const char *, const char *);
-   ZEXTERN z_off_t ZEXPORT gzseek(gzFile, z_off_t, int);
-   ZEXTERN z_off_t ZEXPORT gztell(gzFile);
-   ZEXTERN z_off_t ZEXPORT gzoffset(gzFile);
-   ZEXTERN uLong ZEXPORT adler32_combine(uLong, uLong, z_off_t);
-   ZEXTERN uLong ZEXPORT crc32_combine(uLong, uLong, z_off_t);
-   ZEXTERN uLong ZEXPORT crc32_combine_gen(z_off_t);
+   ZEXTERN czlib_z_off_t ZEXPORT gzseek(gzFile, czlib_z_off_t, int);
+   ZEXTERN czlib_z_off_t ZEXPORT gztell(gzFile);
+   ZEXTERN czlib_z_off_t ZEXPORT gzoffset(gzFile);
+   ZEXTERN uLong ZEXPORT adler32_combine(uLong, uLong, czlib_z_off_t);
+   ZEXTERN uLong ZEXPORT crc32_combine(uLong, uLong, czlib_z_off_t);
+   ZEXTERN uLong ZEXPORT crc32_combine_gen(czlib_z_off_t);
 #endif
 
-#else /* Z_SOLO */
+#else /* CZLIB_Z_SOLO */
 
-   ZEXTERN uLong ZEXPORT adler32_combine(uLong, uLong, z_off_t);
-   ZEXTERN uLong ZEXPORT crc32_combine(uLong, uLong, z_off_t);
-   ZEXTERN uLong ZEXPORT crc32_combine_gen(z_off_t);
+   ZEXTERN uLong ZEXPORT adler32_combine(uLong, uLong, czlib_z_off_t);
+   ZEXTERN uLong ZEXPORT crc32_combine(uLong, uLong, czlib_z_off_t);
+   ZEXTERN uLong ZEXPORT crc32_combine_gen(czlib_z_off_t);
 
-#endif /* !Z_SOLO */
+#endif /* !CZLIB_Z_SOLO */
 
 /* undocumented functions */
 ZEXTERN const char   * ZEXPORT zError(int);
-ZEXTERN int            ZEXPORT inflateSyncPoint(z_streamp);
-ZEXTERN const z_crc_t FAR * ZEXPORT get_crc_table(void);
-ZEXTERN int            ZEXPORT inflateUndermine(z_streamp, int);
-ZEXTERN int            ZEXPORT inflateValidate(z_streamp, int);
-ZEXTERN unsigned long  ZEXPORT inflateCodesUsed(z_streamp);
-ZEXTERN int            ZEXPORT inflateResetKeep(z_streamp);
-ZEXTERN int            ZEXPORT deflateResetKeep(z_streamp);
-#if defined(_WIN32) && !defined(Z_SOLO)
+ZEXTERN int            ZEXPORT inflateSyncPoint(czlib_z_streamp);
+ZEXTERN const czlib_z_crc_t FAR * ZEXPORT get_crc_table(void);
+ZEXTERN int            ZEXPORT inflateUndermine(czlib_z_streamp, int);
+ZEXTERN int            ZEXPORT inflateValidate(czlib_z_streamp, int);
+ZEXTERN unsigned long  ZEXPORT inflateCodesUsed(czlib_z_streamp);
+ZEXTERN int            ZEXPORT inflateResetKeep(czlib_z_streamp);
+ZEXTERN int            ZEXPORT deflateResetKeep(czlib_z_streamp);
+#if defined(_WIN32) && !defined(CZLIB_Z_SOLO)
 ZEXTERN gzFile         ZEXPORT gzopen_w(const wchar_t *path,
                                         const char *mode);
 #endif
-#if defined(STDC) || defined(Z_HAVE_STDARG_H)
-#  ifndef Z_SOLO
+#if defined(STDC) || defined(CZLIB_Z_HAVE_STDARG_H)
+#  ifndef CZLIB_Z_SOLO
 ZEXTERN int            ZEXPORTVA gzvprintf(gzFile file,
                                            const char *format,
                                            va_list va);
@@ -1935,4 +1935,4 @@ ZEXTERN int            ZEXPORTVA gzvprintf(gzFile file,
 }
 #endif
 
-#endif /* ZLIB_H */
+#endif /* CZLIB_ZLIB_H */

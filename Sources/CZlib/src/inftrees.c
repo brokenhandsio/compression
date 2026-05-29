@@ -3,8 +3,8 @@
  * For conditions of distribution and use, see copyright notice in zlib.h
  */
 
-#include "zutil.h"
-#include "inftrees.h"
+#include "czlib-zutil.h"
+#include "czlib-inftrees.h"
 
 #define MAXBITS 15
 
@@ -29,7 +29,7 @@ const char inflate_copyright[] =
    table index bits.  It will differ if the request is greater than the
    longest code or if it is less than the shortest code.
  */
-int ZLIB_INTERNAL inflate_table(codetype type, unsigned short FAR *lens,
+int CZLIB_ZLIB_INTERNAL inflate_table(codetype type, unsigned short FAR *lens,
                                 unsigned codes, code FAR * FAR *table,
                                 unsigned FAR *bits, unsigned short FAR *work) {
     unsigned len;               /* a code's length in bits */

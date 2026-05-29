@@ -13,7 +13,7 @@
 #ifndef DEFLATE_H
 #define DEFLATE_H
 
-#include "zutil.h"
+#include "czlib-zutil.h"
 
 /* define NO_GZIP when compiling if you want to disable gzip header and
    trailer creation by deflate().  NO_GZIP would be used to avoid linking in
@@ -102,7 +102,7 @@ typedef unsigned IPos;
  */
 
 typedef struct internal_state {
-    z_streamp strm;      /* pointer back to this zlib stream */
+    czlib_z_streamp strm;      /* pointer back to this zlib stream */
     int   status;        /* as the name implies */
     Bytef *pending_buf;  /* output still pending */
     ulg   pending_buf_size; /* size of pending_buf */
@@ -258,7 +258,7 @@ typedef struct internal_state {
     uInt matches;       /* number of string matches in current block */
     uInt insert;        /* bytes at end of window left to insert */
 
-#ifdef ZLIB_DEBUG
+#ifdef CZLIB_ZLIB_DEBUG
     ulg compressed_len; /* total bit length of compressed file mod 2^32 */
     ulg bits_sent;      /* bit length of compressed data sent mod 2^32 */
 #endif
@@ -302,13 +302,13 @@ typedef struct internal_state {
    memory checker errors from longest match routines */
 
         /* in trees.c */
-void ZLIB_INTERNAL _tr_init(deflate_state *s);
-int ZLIB_INTERNAL _tr_tally(deflate_state *s, unsigned dist, unsigned lc);
-void ZLIB_INTERNAL _tr_flush_block(deflate_state *s, charf *buf,
+void CZLIB_ZLIB_INTERNAL _tr_init(deflate_state *s);
+int CZLIB_ZLIB_INTERNAL _tr_tally(deflate_state *s, unsigned dist, unsigned lc);
+void CZLIB_ZLIB_INTERNAL _tr_flush_block(deflate_state *s, charf *buf,
                                    ulg stored_len, int last);
-void ZLIB_INTERNAL _tr_flush_bits(deflate_state *s);
-void ZLIB_INTERNAL _tr_align(deflate_state *s);
-void ZLIB_INTERNAL _tr_stored_block(deflate_state *s, charf *buf,
+void CZLIB_ZLIB_INTERNAL _tr_flush_bits(deflate_state *s);
+void CZLIB_ZLIB_INTERNAL _tr_align(deflate_state *s);
+void CZLIB_ZLIB_INTERNAL _tr_stored_block(deflate_state *s, charf *buf,
                                     ulg stored_len, int last);
 
 #define d_code(dist) \
@@ -318,15 +318,15 @@ void ZLIB_INTERNAL _tr_stored_block(deflate_state *s, charf *buf,
  * used.
  */
 
-#ifndef ZLIB_DEBUG
+#ifndef CZLIB_ZLIB_DEBUG
 /* Inline versions of _tr_tally for speed: */
 
 #if defined(GEN_TREES_H) || !defined(STDC)
-  extern uch ZLIB_INTERNAL _length_code[];
-  extern uch ZLIB_INTERNAL _dist_code[];
+  extern uch CZLIB_ZLIB_INTERNAL _length_code[];
+  extern uch CZLIB_ZLIB_INTERNAL _dist_code[];
 #else
-  extern const uch ZLIB_INTERNAL _length_code[];
-  extern const uch ZLIB_INTERNAL _dist_code[];
+  extern const uch CZLIB_ZLIB_INTERNAL _length_code[];
+  extern const uch CZLIB_ZLIB_INTERNAL _dist_code[];
 #endif
 
 #ifdef LIT_MEM

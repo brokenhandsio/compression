@@ -5,7 +5,7 @@
 
 /* @(#) $Id$ */
 
-#include "zutil.h"
+#include "czlib-zutil.h"
 
 #define BASE 65521U     /* largest prime smaller than 65536 */
 #define NMAX 5552
@@ -40,7 +40,7 @@
     } while (0)
 #  define MOD63(a) \
     do { /* this assumes a is not negative */ \
-        z_off64_t tmp = a >> 32; \
+        czlib_z_off64_t tmp = a >> 32; \
         a &= 0xffffffffL; \
         a += (tmp << 8) - (tmp << 5) + tmp; \
         tmp = a >> 16; \
@@ -58,7 +58,7 @@
 #endif
 
 /* ========================================================================= */
-uLong ZEXPORT adler32_z(uLong adler, const Bytef *buf, z_size_t len) {
+uLong ZEXPORT adler32_z(uLong adler, const Bytef *buf, czlib_z_size_t len) {
     unsigned long sum2;
     unsigned n;
 
@@ -78,7 +78,7 @@ uLong ZEXPORT adler32_z(uLong adler, const Bytef *buf, z_size_t len) {
     }
 
     /* initial Adler-32 value (deferred check for len == 1 speed) */
-    if (buf == Z_NULL)
+    if (buf == CZLIB_Z_NULL)
         return 1L;
 
     /* in case short lengths are provided, keep it somewhat fast */
@@ -130,7 +130,7 @@ uLong ZEXPORT adler32(uLong adler, const Bytef *buf, uInt len) {
 }
 
 /* ========================================================================= */
-local uLong adler32_combine_(uLong adler1, uLong adler2, z_off64_t len2) {
+local uLong adler32_combine_(uLong adler1, uLong adler2, czlib_z_off64_t len2) {
     unsigned long sum1;
     unsigned long sum2;
     unsigned rem;
@@ -155,10 +155,10 @@ local uLong adler32_combine_(uLong adler1, uLong adler2, z_off64_t len2) {
 }
 
 /* ========================================================================= */
-uLong ZEXPORT adler32_combine(uLong adler1, uLong adler2, z_off_t len2) {
+uLong ZEXPORT adler32_combine(uLong adler1, uLong adler2, czlib_z_off_t len2) {
     return adler32_combine_(adler1, adler2, len2);
 }
 
-uLong ZEXPORT adler32_combine64(uLong adler1, uLong adler2, z_off64_t len2) {
+uLong ZEXPORT adler32_combine64(uLong adler1, uLong adler2, czlib_z_off64_t len2) {
     return adler32_combine_(adler1, adler2, len2);
 }

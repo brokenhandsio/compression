@@ -13,9 +13,14 @@ set -euo pipefail
 ZLIB_VERSION="${1:-1.3.1}"
 ZLIB_URL="https://github.com/madler/zlib/releases/download/v${ZLIB_VERSION}/zlib-${ZLIB_VERSION}.tar.gz"
 
+PREFIX_LC="czlib_z_"
+PREFIX_UC="CZLIB_Z_"
+PREFIX_ZLIB="CZLIB_ZLIB_"
+HEADER_PREFIX="czlib-"  # for renamed header filenames
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-CZLIB_DIR="${PROJECT_ROOT}/Sources/Compression/CZlib"
+CZLIB_DIR="${PROJECT_ROOT}/Sources/CZlib"
 WORK_DIR="$(mktemp -d)"
 
 cleanup() {
@@ -23,12 +28,21 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# Portable in-place sed
+sed_inplace() {
+    if [[ "$(uname)" == "Darwin" ]]; then
+        sed -i '' "$@"
+    else
+        sed -i "$@"
+    fi
+}
+
 echo "==> Vendoring zlib ${ZLIB_VERSION}"
 echo "    URL: ${ZLIB_URL}"
 echo "    Destination: ${CZLIB_DIR}"
 
 # ---------------------------------------------------------------------------
-# 1. Download & extract
+# 1. Download, extract
 # ---------------------------------------------------------------------------
 echo "==> Downloading zlib ${ZLIB_VERSION}..."
 curl -fsSL "${ZLIB_URL}" -o "${WORK_DIR}/zlib.tar.gz"
@@ -44,26 +58,27 @@ if [[ ! -d "${ZLIB_SRC}" ]]; then
 fi
 
 # ---------------------------------------------------------------------------
-# 2. Prepare destination
+# 2. Prepare destination (preserving any hand-maintained umbrella header)
 # ---------------------------------------------------------------------------
 echo "==> Preparing ${CZLIB_DIR}..."
+PRESERVED_UMBRELLA=""
+if [[ -f "${CZLIB_DIR}/include/CZlib.h" ]]; then
+    PRESERVED_UMBRELLA="$(cat "${CZLIB_DIR}/include/CZlib.h")"
+fi
 rm -rf "${CZLIB_DIR}"
 mkdir -p "${CZLIB_DIR}/include"
 mkdir -p "${CZLIB_DIR}/src"
 
 # ---------------------------------------------------------------------------
-# 3. Copy source files
+# 3. Define file lists
 # ---------------------------------------------------------------------------
-# Core C sources required to build zlib as a static library.
-# The gz*.c files (gzip FILE* I/O) are intentionally excluded because they
-# rely on POSIX symbols (read/write/close/lseek) that conflict with Swift's
-# Clang-module isolation.
+# Streaming + one-shot compress/uncompress. No gzip FILE* I/O (gz*.c)
+# and no callback-inflate (infback.c) — add back if you need them.
 ZLIB_C_FILES=(
     adler32.c
     compress.c
     crc32.c
     deflate.c
-    infback.c
     inffast.c
     inflate.c
     inftrees.c
@@ -72,13 +87,7 @@ ZLIB_C_FILES=(
     zutil.c
 )
 
-echo "==> Copying source files..."
-for f in "${ZLIB_C_FILES[@]}"; do
-    cp "${ZLIB_SRC}/${f}" "${CZLIB_DIR}/src/${f}"
-done
-
-# Internal headers needed by the C files (kept alongside sources)
-ZLIB_INTERNAL_HEADERS=(
+ZLIB_PRIVATE_HEADERS=(
     crc32.h
     deflate.h
     gzguts.h
@@ -90,180 +99,153 @@ ZLIB_INTERNAL_HEADERS=(
     zutil.h
 )
 
-for h in "${ZLIB_INTERNAL_HEADERS[@]}"; do
+ZLIB_PUBLIC_HEADERS=(
+    zlib.h
+    zconf.h
+)
+
+# ---------------------------------------------------------------------------
+# 4. Copy source files
+# ---------------------------------------------------------------------------
+echo "==> Copying source files..."
+for f in "${ZLIB_C_FILES[@]}"; do
+    cp "${ZLIB_SRC}/${f}" "${CZLIB_DIR}/src/${f}"
+done
+
+for h in "${ZLIB_PRIVATE_HEADERS[@]}"; do
     if [[ -f "${ZLIB_SRC}/${h}" ]]; then
-        cp "${ZLIB_SRC}/${h}" "${CZLIB_DIR}/src/${h}"
+        cp "${ZLIB_SRC}/${h}" "${CZLIB_DIR}/src/${HEADER_PREFIX}${h}"
     fi
 done
 
-# ---------------------------------------------------------------------------
-# 4. Copy public headers
-# ---------------------------------------------------------------------------
-echo "==> Copying public headers..."
-cp "${ZLIB_SRC}/zlib.h"  "${CZLIB_DIR}/include/zlib.h"
-cp "${ZLIB_SRC}/zconf.h" "${CZLIB_DIR}/include/zconf.h"
+for h in "${ZLIB_PUBLIC_HEADERS[@]}"; do
+    cp "${ZLIB_SRC}/${h}" "${CZLIB_DIR}/include/${HEADER_PREFIX}${h}"
+done
 
 # ---------------------------------------------------------------------------
-# 4b. Symbol renaming — avoid clashes with system / dylib zlib
+# 5. Build list of all vendored files (used by sed sweeps)
 # ---------------------------------------------------------------------------
-# We create czlib_rename.h which #define-renames every public zlib symbol to
-# a czlib_* equivalent.  We then append a single #include of that header to
-# the vendored zconf.h.  Because zconf.h is pulled in by zlib.h, which is
-# pulled in (directly or via zutil.h) by every C translation unit we compile,
-# the renames are injected automatically: the resulting .o files emit czlib_*
-# symbols instead of the stock zlib names.  Swift callers see the same names
-# because the CZlib module header chain includes zconf.h too.
-echo "==> Creating czlib_rename.h..."
-cat > "${CZLIB_DIR}/include/czlib_rename.h" <<'RENAME'
-/*
- * czlib_rename.h
- * Renames all public zlib symbols to CZlib_* to avoid clashing with any
- * system or dylib zlib present at link time.
- *
- * AUTO-GENERATED by vendor-zlib.sh — do not edit by hand.
- */
-#ifndef CZLIB_RENAME_H
-#define CZLIB_RENAME_H
-
-#define deflate                CZlib_deflate
-#define deflateEnd             CZlib_deflateEnd
-#define deflateInit_           CZlib_deflateInit_
-#define deflateInit2_          CZlib_deflateInit2_
-#define deflateSetDictionary   CZlib_deflateSetDictionary
-#define deflateGetDictionary   CZlib_deflateGetDictionary
-#define deflateSetHeader       CZlib_deflateSetHeader
-#define deflatePrime           CZlib_deflatePrime
-#define deflateTune            CZlib_deflateTune
-#define deflatePending         CZlib_deflatePending
-#define deflateParams          CZlib_deflateParams
-#define deflateReset           CZlib_deflateReset
-#define deflateResetKeep       CZlib_deflateResetKeep
-#define deflateBound           CZlib_deflateBound
-#define deflateCopy            CZlib_deflateCopy
-
-#define inflate                CZlib_inflate
-#define inflateEnd             CZlib_inflateEnd
-#define inflateInit_           CZlib_inflateInit_
-#define inflateInit2_          CZlib_inflateInit2_
-#define inflateSetDictionary   CZlib_inflateSetDictionary
-#define inflateGetDictionary   CZlib_inflateGetDictionary
-#define inflateSync            CZlib_inflateSync
-#define inflateSyncPoint       CZlib_inflateSyncPoint
-#define inflateCopy            CZlib_inflateCopy
-#define inflateReset           CZlib_inflateReset
-#define inflateReset2          CZlib_inflateReset2
-#define inflateResetKeep       CZlib_inflateResetKeep
-#define inflatePrime           CZlib_inflatePrime
-#define inflateMark            CZlib_inflateMark
-#define inflateBack            CZlib_inflateBack
-#define inflateBackInit_       CZlib_inflateBackInit_
-#define inflateBackEnd         CZlib_inflateBackEnd
-#define inflateUndermine       CZlib_inflateUndermine
-#define inflateValidate        CZlib_inflateValidate
-#define inflateCodesUsed       CZlib_inflateCodesUsed
-
-#define compress               CZlib_compress
-#define compress2              CZlib_compress2
-#define compressBound          CZlib_compressBound
-#define uncompress             CZlib_uncompress
-#define uncompress2            CZlib_uncompress2
-
-#define adler32                CZlib_adler32
-#define adler32_z              CZlib_adler32_z
-#define adler32_combine        CZlib_adler32_combine
-#define adler32_combine64      CZlib_adler32_combine64
-
-#define crc32                  CZlib_crc32
-#define crc32_z                CZlib_crc32_z
-#define crc32_combine          CZlib_crc32_combine
-#define crc32_combine64        CZlib_crc32_combine64
-#define crc32_combine_gen      CZlib_crc32_combine_gen
-#define crc32_combine_gen64    CZlib_crc32_combine_gen64
-#define crc32_combine_op       CZlib_crc32_combine_op
-#define get_crc_table          CZlib_get_crc_table
-
-#define zError                 CZlib_zError
-#define zlibVersion            CZlib_zlibVersion
-#define zlibCompileFlags       CZlib_zlibCompileFlags
-
-#define z_errmsg               CZlib_z_errmsg
-
-#endif /* CZLIB_RENAME_H */
-RENAME
-
-echo "==> Patching zconf.h to include czlib_rename.h..."
-cat >> "${CZLIB_DIR}/include/zconf.h" <<'PATCH'
-
-/* --- czlib vendoring: rename public symbols to avoid dylib clash --- */
-#include "czlib_rename.h"
-PATCH
+ALL_VENDORED_FILES=()
+for f in "${ZLIB_C_FILES[@]}"; do
+    ALL_VENDORED_FILES+=("${CZLIB_DIR}/src/${f}")
+done
+for h in "${ZLIB_PRIVATE_HEADERS[@]}"; do
+    if [[ -f "${CZLIB_DIR}/src/${HEADER_PREFIX}${h}" ]]; then
+        ALL_VENDORED_FILES+=("${CZLIB_DIR}/src/${HEADER_PREFIX}${h}")
+    fi
+done
+for h in "${ZLIB_PUBLIC_HEADERS[@]}"; do
+    ALL_VENDORED_FILES+=("${CZLIB_DIR}/include/${HEADER_PREFIX}${h}")
+done
 
 # ---------------------------------------------------------------------------
-# 5. Create modulemap
+# 6. Rewrite #include directives for renamed headers
 # ---------------------------------------------------------------------------
-echo "==> Creating module.modulemap..."
+echo "==> Rewriting #include directives..."
+ALL_HEADERS=("${ZLIB_PUBLIC_HEADERS[@]}" "${ZLIB_PRIVATE_HEADERS[@]}")
+for h in "${ALL_HEADERS[@]}"; do
+    sed_inplace "s|\"${h}\"|\"${HEADER_PREFIX}${h}\"|g" "${ALL_VENDORED_FILES[@]}"
+    sed_inplace "s|<${h}>|<${HEADER_PREFIX}${h}>|g" "${ALL_VENDORED_FILES[@]}"
+done
+
+# ---------------------------------------------------------------------------
+# 7. Activate Z_PREFIX block in zconf.h
+# ---------------------------------------------------------------------------
+echo "==> Activating Z_PREFIX block..."
+sed_inplace "s|^#ifdef Z_PREFIX.*$|#if 1 /* Z_PREFIX - ${PREFIX_LC} */|" \
+    "${CZLIB_DIR}/include/${HEADER_PREFIX}zconf.h"
+
+# ---------------------------------------------------------------------------
+# 8. Apply prefix to all identifiers
+# ---------------------------------------------------------------------------
+echo "==> Applying ${PREFIX_LC} prefix..."
+
+# z_  -> czlib_z_   (z_deflate, z_streamp, z_const, z_size_t, etc.)
+sed_inplace -E "s/(^|[^a-zA-Z_])z_/\1${PREFIX_LC}/g" "${ALL_VENDORED_FILES[@]}"
+
+# Z_  -> CZLIB_Z_   (Z_OK, Z_FINISH, Z_PREFIX, etc.)
+sed_inplace -E "s/(^|[^a-zA-Z_])Z_/\1${PREFIX_UC}/g" "${ALL_VENDORED_FILES[@]}"
+
+# ZLIB_ -> CZLIB_ZLIB_  (ZLIB_VERSION, ZLIB_INTERNAL, ZLIB_H guard)
+sed_inplace -E "s/(^|[^a-zA-Z_])ZLIB_/\1${PREFIX_ZLIB}/g" "${ALL_VENDORED_FILES[@]}"
+
+# ZCONF_H guard isn't caught above
+sed_inplace "s/ZCONF_H/CZLIB_ZCONF_H/g" \
+    "${CZLIB_DIR}/include/${HEADER_PREFIX}zconf.h"
+
+# ---------------------------------------------------------------------------
+# 9. Create modulemap and umbrella shim
+# ---------------------------------------------------------------------------
+echo "==> Creating module.modulemap and umbrella header..."
+if [[ -n "${PRESERVED_UMBRELLA}" ]]; then
+    echo "    Restoring existing CZlib.h"
+    printf '%s' "${PRESERVED_UMBRELLA}" > "${CZLIB_DIR}/include/CZlib.h"
+else
+    echo "    Generating minimal CZlib.h"
+    cat > "${CZLIB_DIR}/include/CZlib.h" <<SHIM
+#ifndef CZLIB_UMBRELLA_H
+#define CZLIB_UMBRELLA_H
+
+#include "${HEADER_PREFIX}zlib.h"
+
+#endif
+SHIM
+fi
+
 cat > "${CZLIB_DIR}/include/module.modulemap" <<'MODULEMAP'
 module CZlib {
-    header "zlib.h"
+    header "CZlib.h"
     export *
 }
 MODULEMAP
 
 # ---------------------------------------------------------------------------
-# 6. Create shim header that includes zlib.h (optional convenience)
+# 10. Add LICENSE and version stamp
 # ---------------------------------------------------------------------------
-cat > "${CZLIB_DIR}/include/CZlib.h" <<'SHIM'
-#ifndef CZLIB_H
-#define CZLIB_H
-
-#include "zlib.h"
-
-#endif /* CZLIB_H */
-SHIM
-
-# ---------------------------------------------------------------------------
-# 7. Record the vendored version
-# ---------------------------------------------------------------------------
-echo "${ZLIB_VERSION}" > "${CZLIB_DIR}/ZLIB_VERSION"
 cp "${ZLIB_SRC}/LICENSE" "${CZLIB_DIR}/LICENSE" 2>/dev/null \
-    || cp "${ZLIB_SRC}/README" "${CZLIB_DIR}/README" 2>/dev/null \
+    || cp "${ZLIB_SRC}/README" "${CZLIB_DIR}/LICENSE" 2>/dev/null \
     || true
 
-# ---------------------------------------------------------------------------
-# 8. Validate symbol prefixes (compile + nm)
-# ---------------------------------------------------------------------------
-# Compile each .c file and confirm that every public (T) symbol in the
-# resulting object carries the CZlib_ prefix.  This catches any functions
-# missing from czlib_rename.h before they can cause link-time clashes.
-echo "==> Validating symbol prefixes..."
-OBJ_DIR="${WORK_DIR}/obj"
-mkdir -p "${OBJ_DIR}"
-validation_failed=0
+echo "${ZLIB_VERSION}" > "${CZLIB_DIR}/ZLIB_VERSION"
 
-for f in "${CZLIB_DIR}/src/"*.c; do
-    obj="${OBJ_DIR}/$(basename "${f}").o"
+# ---------------------------------------------------------------------------
+# 11. Validate: compile each .c and confirm every defined-text symbol is prefixed
+# ---------------------------------------------------------------------------
+echo "==> Validating symbol prefixes with clang + nm..."
+TMP_OBJ_DIR="$(mktemp -d)"
+trap 'rm -rf "${WORK_DIR}" "${TMP_OBJ_DIR}"' EXIT
+
+validation_failed=0
+for f in "${ZLIB_C_FILES[@]}"; do
     if ! clang -c \
-            -I"${CZLIB_DIR}/include" \
-            -I"${CZLIB_DIR}/src" \
-            "${f}" -o "${obj}" 2>/dev/null; then
-        echo "  WARNING: clang failed to compile $(basename "${f}") — skipping" >&2
+        -I"${CZLIB_DIR}/include" \
+        -I"${CZLIB_DIR}/src" \
+        "${CZLIB_DIR}/src/${f}" \
+        -o "${TMP_OBJ_DIR}/${f}.o" 2>"${TMP_OBJ_DIR}/${f}.log"
+    then
+        echo "ERROR: failed to compile ${f}:" >&2
+        cat "${TMP_OBJ_DIR}/${f}.log" >&2
         validation_failed=1
         continue
     fi
-    bad="$(nm "${obj}" 2>/dev/null | awk '$2 == "T" && $3 !~ /^_CZlib_/ { print $3 }')"
+
+    # ' T ' = global text symbol (defined function). Anything not prefixed
+    # is a symbol that escaped the rename.
+    bad="$(nm "${TMP_OBJ_DIR}/${f}.o" 2>/dev/null \
+        | awk '$2 == "T" { print $3 }' \
+        | grep -v "^_\?${PREFIX_LC}" || true)"
     if [[ -n "${bad}" ]]; then
-        echo "  ERROR: $(basename "${f}") has unprefixed public symbols:" >&2
-        echo "${bad}" | sed 's/^/    /' >&2
+        echo "ERROR: ${f} has unprefixed public symbols:" >&2
+        echo "${bad}" >&2
         validation_failed=1
     fi
 done
 
-if [[ "${validation_failed}" -ne 0 ]]; then
-    echo "" >&2
-    echo "Error: unprefixed symbols detected — add them to czlib_rename.h and re-run." >&2
+if [[ ${validation_failed} -ne 0 ]]; then
+    echo "Validation FAILED." >&2
     exit 1
 fi
-echo "==> Validation passed: all public symbols carry the CZlib_ prefix"
 
 echo ""
 echo "==> zlib ${ZLIB_VERSION} vendored successfully into ${CZLIB_DIR}"
+echo "    All public symbols carry the ${PREFIX_LC} prefix."

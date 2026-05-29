@@ -2,7 +2,7 @@
 
 @safe @usableFromInline final class ZStreamBox: @unchecked Sendable {
     @usableFromInline
-    var value: z_stream
-    init(value: z_stream) { unsafe self.value = value }
-    init() { unsafe value = z_stream() }
+    var value: czlib_z_stream
+    init(value: czlib_z_stream) { unsafe self.value = value }
+    init() { unsafe value = czlib_z_stream() }
 }

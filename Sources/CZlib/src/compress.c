@@ -5,8 +5,8 @@
 
 /* @(#) $Id$ */
 
-#define ZLIB_INTERNAL
-#include "zlib.h"
+#define CZLIB_ZLIB_INTERNAL
+#include "czlib-zlib.h"
 
 /* ===========================================================================
      Compresses the source buffer into the destination buffer. The level
@@ -15,13 +15,13 @@
    destination buffer, which must be at least 0.1% larger than sourceLen plus
    12 bytes. Upon exit, destLen is the actual size of the compressed buffer.
 
-     compress2 returns Z_OK if success, Z_MEM_ERROR if there was not enough
-   memory, Z_BUF_ERROR if there was not enough room in the output buffer,
-   Z_STREAM_ERROR if the level parameter is invalid.
+     compress2 returns CZLIB_Z_OK if success, CZLIB_Z_MEM_ERROR if there was not enough
+   memory, CZLIB_Z_BUF_ERROR if there was not enough room in the output buffer,
+   CZLIB_Z_STREAM_ERROR if the level parameter is invalid.
 */
 int ZEXPORT compress2(Bytef *dest, uLongf *destLen, const Bytef *source,
                       uLong sourceLen, int level) {
-    z_stream stream;
+    czlib_z_stream stream;
     int err;
     const uInt max = (uInt)-1;
     uLong left;
@@ -34,11 +34,11 @@ int ZEXPORT compress2(Bytef *dest, uLongf *destLen, const Bytef *source,
     stream.opaque = (voidpf)0;
 
     err = deflateInit(&stream, level);
-    if (err != Z_OK) return err;
+    if (err != CZLIB_Z_OK) return err;
 
     stream.next_out = dest;
     stream.avail_out = 0;
-    stream.next_in = (z_const Bytef *)source;
+    stream.next_in = (czlib_z_const Bytef *)source;
     stream.avail_in = 0;
 
     do {
@@ -50,19 +50,19 @@ int ZEXPORT compress2(Bytef *dest, uLongf *destLen, const Bytef *source,
             stream.avail_in = sourceLen > (uLong)max ? max : (uInt)sourceLen;
             sourceLen -= stream.avail_in;
         }
-        err = deflate(&stream, sourceLen ? Z_NO_FLUSH : Z_FINISH);
-    } while (err == Z_OK);
+        err = deflate(&stream, sourceLen ? CZLIB_Z_NO_FLUSH : CZLIB_Z_FINISH);
+    } while (err == CZLIB_Z_OK);
 
     *destLen = stream.total_out;
     deflateEnd(&stream);
-    return err == Z_STREAM_END ? Z_OK : err;
+    return err == CZLIB_Z_STREAM_END ? CZLIB_Z_OK : err;
 }
 
 /* ===========================================================================
  */
 int ZEXPORT compress(Bytef *dest, uLongf *destLen, const Bytef *source,
                      uLong sourceLen) {
-    return compress2(dest, destLen, source, sourceLen, Z_DEFAULT_COMPRESSION);
+    return compress2(dest, destLen, source, sourceLen, CZLIB_Z_DEFAULT_COMPRESSION);
 }
 
 /* ===========================================================================

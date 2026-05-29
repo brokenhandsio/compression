@@ -2,9 +2,9 @@ import Benchmark
 import CompressionDeflate
 
 #if canImport(FoundationEssentials)
-    import FoundationEssentials
+import FoundationEssentials
 #else
-    import Foundation
+import Foundation
 #endif
 
 private let fixturesPath: String = {
@@ -111,7 +111,7 @@ func silesiaBenchmarks() {
             output.reserveCapacity(mozilla.count)
             for _ in benchmark.scaledIterations {
                 output.removeAll(keepingCapacity: true)
-                var compressor = try Deflate.StreamingCompressor(configuration: .default)
+                var compressor = Deflate.StreamingCompressor(configuration: .default)
                 var offset = 0
                 while offset < mozilla.count {
                     let end = min(mozilla.count, offset + chunkSize)
@@ -140,7 +140,7 @@ func silesiaBenchmarks() {
             output.reserveCapacity(mozilla.count)
             for _ in benchmark.scaledIterations {
                 output.removeAll(keepingCapacity: true)
-                var decompressor = try Deflate.StreamingDecompressor(configuration: .default)
+                var decompressor = Deflate.StreamingDecompressor(configuration: .default)
                 var offset = 0
                 while offset < mozillaCompressed.count {
                     let end = min(mozillaCompressed.count, offset + chunkSize)

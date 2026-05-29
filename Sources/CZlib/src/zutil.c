@@ -5,27 +5,27 @@
 
 /* @(#) $Id$ */
 
-#include "zutil.h"
-#ifndef Z_SOLO
-#  include "gzguts.h"
+#include "czlib-zutil.h"
+#ifndef CZLIB_Z_SOLO
+#  include "czlib-gzguts.h"
 #endif
 
-z_const char * const z_errmsg[10] = {
-    (z_const char *)"need dictionary",     /* Z_NEED_DICT       2  */
-    (z_const char *)"stream end",          /* Z_STREAM_END      1  */
-    (z_const char *)"",                    /* Z_OK              0  */
-    (z_const char *)"file error",          /* Z_ERRNO         (-1) */
-    (z_const char *)"stream error",        /* Z_STREAM_ERROR  (-2) */
-    (z_const char *)"data error",          /* Z_DATA_ERROR    (-3) */
-    (z_const char *)"insufficient memory", /* Z_MEM_ERROR     (-4) */
-    (z_const char *)"buffer error",        /* Z_BUF_ERROR     (-5) */
-    (z_const char *)"incompatible version",/* Z_VERSION_ERROR (-6) */
-    (z_const char *)""
+czlib_z_const char * const czlib_z_errmsg[10] = {
+    (czlib_z_const char *)"need dictionary",     /* CZLIB_Z_NEED_DICT       2  */
+    (czlib_z_const char *)"stream end",          /* CZLIB_Z_STREAM_END      1  */
+    (czlib_z_const char *)"",                    /* CZLIB_Z_OK              0  */
+    (czlib_z_const char *)"file error",          /* CZLIB_Z_ERRNO         (-1) */
+    (czlib_z_const char *)"stream error",        /* CZLIB_Z_STREAM_ERROR  (-2) */
+    (czlib_z_const char *)"data error",          /* CZLIB_Z_DATA_ERROR    (-3) */
+    (czlib_z_const char *)"insufficient memory", /* CZLIB_Z_MEM_ERROR     (-4) */
+    (czlib_z_const char *)"buffer error",        /* CZLIB_Z_BUF_ERROR     (-5) */
+    (czlib_z_const char *)"incompatible version",/* CZLIB_Z_VERSION_ERROR (-6) */
+    (czlib_z_const char *)""
 };
 
 
 const char * ZEXPORT zlibVersion(void) {
-    return ZLIB_VERSION;
+    return CZLIB_ZLIB_VERSION;
 }
 
 uLong ZEXPORT zlibCompileFlags(void) {
@@ -50,13 +50,13 @@ uLong ZEXPORT zlibCompileFlags(void) {
     case 8:     flags += 2 << 4;        break;
     default:    flags += 3 << 4;
     }
-    switch ((int)(sizeof(z_off_t))) {
+    switch ((int)(sizeof(czlib_z_off_t))) {
     case 2:     break;
     case 4:     flags += 1 << 6;        break;
     case 8:     flags += 2 << 6;        break;
     default:    flags += 3 << 6;
     }
-#ifdef ZLIB_DEBUG
+#ifdef CZLIB_ZLIB_DEBUG
     flags += 1 << 8;
 #endif
     /*
@@ -64,7 +64,7 @@ uLong ZEXPORT zlibCompileFlags(void) {
     flags += 1 << 9;
 #endif
      */
-#ifdef ZLIB_WINAPI
+#ifdef CZLIB_ZLIB_WINAPI
     flags += 1 << 10;
 #endif
 #ifdef BUILDFIXED
@@ -85,7 +85,7 @@ uLong ZEXPORT zlibCompileFlags(void) {
 #ifdef FASTEST
     flags += 1L << 21;
 #endif
-#if defined(STDC) || defined(Z_HAVE_STDARG_H)
+#if defined(STDC) || defined(CZLIB_Z_HAVE_STDARG_H)
 #  ifdef NO_vsnprintf
     flags += 1L << 25;
 #    ifdef HAS_vsprintf_void
@@ -112,14 +112,14 @@ uLong ZEXPORT zlibCompileFlags(void) {
     return flags;
 }
 
-#ifdef ZLIB_DEBUG
+#ifdef CZLIB_ZLIB_DEBUG
 #include <stdlib.h>
 #  ifndef verbose
 #    define verbose 0
 #  endif
-int ZLIB_INTERNAL z_verbose = verbose;
+int CZLIB_ZLIB_INTERNAL czlib_z_verbose = verbose;
 
-void ZLIB_INTERNAL z_error(char *m) {
+void CZLIB_ZLIB_INTERNAL czlib_z_error(char *m) {
     fprintf(stderr, "%s\n", m);
     exit(1);
 }
@@ -142,14 +142,14 @@ const char * ZEXPORT zError(int err) {
 
 #ifndef HAVE_MEMCPY
 
-void ZLIB_INTERNAL zmemcpy(Bytef* dest, const Bytef* source, uInt len) {
+void CZLIB_ZLIB_INTERNAL zmemcpy(Bytef* dest, const Bytef* source, uInt len) {
     if (len == 0) return;
     do {
         *dest++ = *source++; /* ??? to be unrolled */
     } while (--len != 0);
 }
 
-int ZLIB_INTERNAL zmemcmp(const Bytef* s1, const Bytef* s2, uInt len) {
+int CZLIB_ZLIB_INTERNAL zmemcmp(const Bytef* s1, const Bytef* s2, uInt len) {
     uInt j;
 
     for (j = 0; j < len; j++) {
@@ -158,7 +158,7 @@ int ZLIB_INTERNAL zmemcmp(const Bytef* s1, const Bytef* s2, uInt len) {
     return 0;
 }
 
-void ZLIB_INTERNAL zmemzero(Bytef* dest, uInt len) {
+void CZLIB_ZLIB_INTERNAL zmemzero(Bytef* dest, uInt len) {
     if (len == 0) return;
     do {
         *dest++ = 0;  /* ??? to be unrolled */
@@ -166,7 +166,7 @@ void ZLIB_INTERNAL zmemzero(Bytef* dest, uInt len) {
 }
 #endif
 
-#ifndef Z_SOLO
+#ifndef CZLIB_Z_SOLO
 
 #ifdef SYS16BIT
 
@@ -199,7 +199,7 @@ local ptr_table table[MAX_PTR];
  * a protected system like OS/2. Use Microsoft C instead.
  */
 
-voidpf ZLIB_INTERNAL zcalloc(voidpf opaque, unsigned items, unsigned size) {
+voidpf CZLIB_ZLIB_INTERNAL zcalloc(voidpf opaque, unsigned items, unsigned size) {
     voidpf buf;
     ulg bsize = (ulg)items*size;
 
@@ -224,7 +224,7 @@ voidpf ZLIB_INTERNAL zcalloc(voidpf opaque, unsigned items, unsigned size) {
     return buf;
 }
 
-void ZLIB_INTERNAL zcfree(voidpf opaque, voidpf ptr) {
+void CZLIB_ZLIB_INTERNAL zcfree(voidpf opaque, voidpf ptr) {
     int n;
 
     (void)opaque;
@@ -260,12 +260,12 @@ void ZLIB_INTERNAL zcfree(voidpf opaque, voidpf ptr) {
 #  define _hfree   hfree
 #endif
 
-voidpf ZLIB_INTERNAL zcalloc(voidpf opaque, uInt items, uInt size) {
+voidpf CZLIB_ZLIB_INTERNAL zcalloc(voidpf opaque, uInt items, uInt size) {
     (void)opaque;
     return _halloc((long)items, size);
 }
 
-void ZLIB_INTERNAL zcfree(voidpf opaque, voidpf ptr) {
+void CZLIB_ZLIB_INTERNAL zcfree(voidpf opaque, voidpf ptr) {
     (void)opaque;
     _hfree(ptr);
 }
@@ -283,17 +283,17 @@ extern voidp calloc(uInt items, uInt size);
 extern void free(voidpf ptr);
 #endif
 
-voidpf ZLIB_INTERNAL zcalloc(voidpf opaque, unsigned items, unsigned size) {
+voidpf CZLIB_ZLIB_INTERNAL zcalloc(voidpf opaque, unsigned items, unsigned size) {
     (void)opaque;
     return sizeof(uInt) > 2 ? (voidpf)malloc(items * size) :
                               (voidpf)calloc(items, size);
 }
 
-void ZLIB_INTERNAL zcfree(voidpf opaque, voidpf ptr) {
+void CZLIB_ZLIB_INTERNAL zcfree(voidpf opaque, voidpf ptr) {
     (void)opaque;
     free(ptr);
 }
 
 #endif /* MY_ZCALLOC */
 
-#endif /* !Z_SOLO */
+#endif /* !CZLIB_Z_SOLO */

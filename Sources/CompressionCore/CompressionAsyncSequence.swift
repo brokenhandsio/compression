@@ -1,23 +1,29 @@
+#if canImport(_Concurrency)
+import _Concurrency
+
 public struct CompressionAsyncSequence<
     BackingSequence: AsyncSequence,
-    Algorithm: CompressionAlgorithm
+    Algorithm: StreamingCompressionAlgorithm
 >: AsyncSequence where BackingSequence.Element: CompressibleInput {
-    final class CompressorBox<C: StreamingCompressor & ~Copyable> {
-        var value: C
-        var buffer: [UInt8] = []
-        init(value: consuming C) { self.value = value }
-    }
-
     let backingSequence: BackingSequence
-    let compressor: CompressorBox<Algorithm.StreamingCompressor>
+    let configuration: Algorithm.CompressionConfiguration
 
-    public init(backingSequence: BackingSequence, configuration: Algorithm.Configuration) throws {
+    public init(
+        backingSequence: BackingSequence,
+        configuration: Algorithm.CompressionConfiguration
+    ) {
         self.backingSequence = backingSequence
-        self.compressor = try .init(value: .init(configuration: configuration))
+        self.configuration = configuration
     }
 
     public struct AsyncIterator: AsyncIteratorProtocol {
         public typealias Element = [UInt8]
+
+        final class CompressorBox<C: StreamingCompressor & ~Copyable> {
+            var value: C
+            var buffer: [UInt8] = []
+            init(value: consuming C) { self.value = value }
+        }
 
         var backingIterator: BackingSequence.AsyncIterator
         var compressor: CompressorBox<Algorithm.StreamingCompressor>
@@ -28,12 +34,7 @@ public struct CompressionAsyncSequence<
                 compressor.buffer.removeAll(keepingCapacity: true)
                 try chunk.withSpan { inputSpan in
                     try compressor.value.compress(inputSpan) { resultSpan in
-                        // TODO: replace with Array(span) when available
-                        compressor.buffer.append(addingCapacity: resultSpan.count) {
-                            for i in 0..<resultSpan.count {
-                                $0.append(resultSpan[i])
-                            }
-                        }
+                        unsafe compressor.buffer.append(span: resultSpan)
                     }
                 }
                 return compressor.buffer
@@ -41,12 +42,7 @@ public struct CompressionAsyncSequence<
                 compressor.buffer.removeAll(keepingCapacity: true)
                 defer { finished = true }
                 try compressor.value.finish { resultSpan in
-                    // TODO: replace with Array(span) when available
-                    compressor.buffer.append(addingCapacity: resultSpan.count) {
-                        for i in 0..<resultSpan.count {
-                            $0.append(resultSpan[i])
-                        }
-                    }
+                    unsafe compressor.buffer.append(span: resultSpan)
                 }
                 return compressor.buffer
             }
@@ -55,15 +51,19 @@ public struct CompressionAsyncSequence<
     }
 
     public func makeAsyncIterator() -> AsyncIterator {
-        AsyncIterator(backingIterator: backingSequence.makeAsyncIterator(), compressor: compressor)
+        AsyncIterator(
+            backingIterator: backingSequence.makeAsyncIterator(),
+            compressor: .init(value: .init(configuration: configuration))
+        )
     }
 }
 
 extension AsyncSequence where Element: CompressibleInput {
     public func compressed<Algorithm: CompressionAlgorithm>(
         using algorithm: Algorithm.Type,
-        configuration: Algorithm.Configuration = .default
-    ) throws -> CompressionAsyncSequence<Self, Algorithm> {
-        try .init(backingSequence: self, configuration: configuration)
+        configuration: Algorithm.CompressionConfiguration = .default
+    ) -> CompressionAsyncSequence<Self, Algorithm> {
+        .init(backingSequence: self, configuration: configuration)
     }
 }
+#endif

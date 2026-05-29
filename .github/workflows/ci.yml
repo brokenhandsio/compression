@@ -2,9 +2,9 @@ name: test
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 permissions:
   contents: read
@@ -17,15 +17,17 @@ jobs:
   tests:
     uses: swiftlang/github-workflows/.github/workflows/swift_package_test.yml@0.0.11
     with:
-      linux_swift_versions: "[\"6.3\", \"nightly-main\"]"
+      linux_swift_versions: '["6.3", "nightly-main"]'
       linux_build_command: "swift test --explicit-target-dependency-import-check error"
+      linux_pre_build_command: "./scripts/fetch-silesia.sh Tests/Fixtures/Silesia"
+      macos_pre_build_command: "./scripts/fetch-silesia.sh Tests/Fixtures/Silesia"
       enable_linux_static_sdk_build: true
-      linux_static_sdk_versions: "[\"6.3\"]"
+      linux_static_sdk_versions: '["6.3"]'
       enable_wasm_sdk_build: true
-      wasm_sdk_versions: "[\"6.3\"]"
-      windows_swift_versions: "[\"6.3\"]"
+      wasm_sdk_versions: '["6.3"]'
+      windows_swift_versions: '["6.3"]'
       enable_android_sdk_build: true
-      android_sdk_versions: "[\"6.3\"]"
+      android_sdk_versions: '["6.3"]'
       enable_macos_checks: true
       enable_ios_checks: true
       enable_freebsd_checks: true

@@ -1,13 +1,15 @@
+#if !hasFeature(Embedded)
 import CompressionCore
 
 #if canImport(FoundationEssentials)
-    import FoundationEssentials
+import FoundationEssentials
 #else
-    import Foundation
+import Foundation
 #endif
 
 extension Data: CompressionCore.CompressibleInput {
-    public func withSpan<R>(_ body: (Span<UInt8>) throws -> R) rethrows -> R {
+    public func withSpan<R, E: Error>(_ body: (Span<UInt8>) throws(E) -> R) throws(E) -> R {
         try body(self.span)
     }
 }
+#endif

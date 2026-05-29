@@ -2,9 +2,9 @@ import CompressionDeflate
 import Testing
 
 #if canImport(FoundationEssentials)
-    import FoundationEssentials
+import FoundationEssentials
 #else
-    import Foundation
+import Foundation
 #endif
 
 // Download the corpus and place the files under Tests/Fixtures/Silesia/:
@@ -26,7 +26,7 @@ private let silesiaCorpusAvailable: Bool = {
     FileManager.default.fileExists(atPath: silesiaCorpusDir + "/dickens")
 }()
 
-@Suite(.disabled(if: !silesiaCorpusAvailable, "Silesia corpus not found"))
+@Suite("Silesia Corpus", .disabled(if: !silesiaCorpusAvailable, "Silesia corpus not found"))
 struct SilesiaCorpusTests {
     static let corpusDir = silesiaCorpusDir
 
@@ -48,8 +48,8 @@ struct SilesiaCorpusTests {
         let compressor = Deflate.Compressor()
         let decompressor = Deflate.Decompressor()
 
-        let compressed = try compressor.compress(input.span)
-        let decompressed = try decompressor.decompress(compressed.span)
+        let compressed = try compressor.compress(input)
+        let decompressed = try decompressor.decompress(compressed)
         #expect(decompressed == input)
     }
 
@@ -58,6 +58,6 @@ struct SilesiaCorpusTests {
         let input = try loadFile(file)
         let c = Deflate.Compressor(configuration: .gzip)
         let d = Deflate.Decompressor(configuration: .gzip)
-        #expect(try d.decompress(c.compress(input.span)) == input)
+        #expect(try d.decompress(c.compress(input)) == input)
     }
 }

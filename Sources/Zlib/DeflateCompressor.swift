@@ -1,24 +1,40 @@
 import CZlib
 @_exported import CompressionCore
 
-public enum Deflate: CompressionAlgorithm {}
+/// RFC 1950 zlib, RFC 1951 raw deflate, and RFC 1952 gzip, backed by libz.
+public enum Deflate:
+    CompressionAlgorithm,
+    OneShotCompressionAlgorithm,
+    OneShotDecompressionAlgorithm,
+    StreamingCompressionAlgorithm,
+    StreamingDecompressionAlgorithm
+{}
 
 extension Deflate {
     /// Stateless, one-shot deflate compressor.
     ///
     /// Each call to `compress` creates and destroys a fresh zlib stream.
-    /// For compressing many chunks as part of a single logical stream — where
-    /// LZ77 context should carry across boundaries — use `DeflateCompressorStream`.
+    /// For compressing many chunks as part of a single logical stream - where
+    /// LZ77 context should carry across boundaries - use `DeflateCompressorStream`.
     public struct Compressor: CompressionCore.Compressor {
-        public let configuration: Configuration
+        public let configuration: CompressionConfiguration
 
-        public init(configuration: Configuration = .default) {
+        public init(configuration: CompressionConfiguration = .default) {
             self.configuration = configuration
         }
 
-        public func compress(_ input: some CompressibleInput) throws -> [UInt8] {
-            try input.withSpan { span in
-                try compress(span)
+        public func compress(_ input: some CompressibleInput) throws(Deflate.Error) -> [UInt8] {
+            try input.withSpan { span throws(Deflate.Error) in
+                let bound = Int(czlib_z_compressBound(czlib_z_uLong(span.count)))
+                return try [UInt8](capacity: bound) { outputSpan throws(Deflate.Error) in
+                    try compress(span, into: &outputSpan)
+                }
+            }
+        }
+
+        public func compress(_ input: some CompressibleInput, into output: inout OutputSpan<UInt8>) throws(Deflate.Error) {
+            try input.withSpan { span throws(Deflate.Error) in
+                try compress(span, into: &output)
             }
         }
 
@@ -26,8 +42,8 @@ extension Deflate {
         ///
         /// The output size is bounded before allocation using `deflateBound`,
         /// so there is exactly one output allocation and a single `deflate` call.
-        public func compress(_ input: Span<UInt8>) throws(Deflate.Error) -> [UInt8] {
-            var stream = unsafe z_stream()
+        public func compress(_ input: Span<UInt8>, into output: inout OutputSpan<UInt8>) throws(Deflate.Error) {
+            var stream = unsafe czlib_z_stream()
             unsafe stream.zalloc = nil
             unsafe stream.zfree = nil
             unsafe stream.opaque = nil
@@ -35,49 +51,47 @@ extension Deflate {
             let rt = unsafe CZlib_deflateInit2(
                 &stream,
                 configuration.level.rawValue,
-                Z_DEFLATED,
+                CZLIB_Z_DEFLATED,
                 configuration.format.windowBits,
-                configuration.memLevel,
+                configuration.memory.rawValue,
                 configuration.strategy.rawValue,
             )
             switch rt {
-            case Z_MEM_ERROR: throw .insufficientMemory
-            case Z_OK: break
+            case CZLIB_Z_MEM_ERROR: throw .insufficientMemory
+            case CZLIB_Z_OK: break
             default: throw .internalError
             }
 
             defer {
-                let rt = unsafe deflateEnd(&stream)
-                assert(rt != Z_STREAM_ERROR, "deflateEnd returned stream error")
+                let rt = unsafe czlib_z_deflateEnd(&stream)
+                precondition(rt != CZLIB_Z_STREAM_ERROR, "deflateEnd returned stream error")
             }
-
-            let bound = Int(unsafe CZlib.deflateBound(&stream, UInt(input.count)))
-            var output = [UInt8](repeating: 0, count: bound)
-
-            var result: Int32 = Z_OK
 
             unsafe stream.avail_in = UInt32(input.count)
             unsafe stream.next_in = CZlib_voidPtr_to_BytefPtr(input)
 
-            var outputSpan = output.mutableSpan
-            unsafe stream.avail_out = UInt32(outputSpan.count)
-            unsafe stream.next_out = CZlib_voidPtr_to_BytefPtr_mut(&outputSpan)
+            unsafe try output.withUnsafeMutableBufferPointer { tail, initializedCount throws(Deflate.Error) in
+                let free = tail.count - initializedCount
+                if free == 0 { throw .outputBufferTooSmall }
+                let dest = unsafe tail.baseAddress! + initializedCount
 
-            result = unsafe CZlib.deflate(&stream, Z_FINISH)
+                unsafe stream.avail_out = UInt32(free)
+                unsafe stream.next_out = CZlib_voidPtr_to_BytefPtr_mut(dest, free)
 
-            switch result {
-            case Z_STREAM_END: break
-            case Z_DATA_ERROR: throw .corruptData
-            case Z_OK: throw .bufferOverflow  // since we use Z_FINISH
-            case Z_BUF_ERROR: throw .bufferOverflow
-            case Z_MEM_ERROR: throw .insufficientMemory
-            default:
-                throw .internalError
+                let result = unsafe czlib_z_deflate(&stream, CZLIB_Z_FINISH)
+
+                switch result {
+                case CZLIB_Z_STREAM_END: break
+                case CZLIB_Z_DATA_ERROR: throw .corruptData
+                case CZLIB_Z_OK: throw .outputBufferTooSmall  // since we use Z_FINISH
+                case CZLIB_Z_BUF_ERROR: throw .outputBufferTooSmall
+                case CZLIB_Z_MEM_ERROR: throw .insufficientMemory
+                default: throw .internalError
+                }
+
+                let written = tail.count - Int(unsafe stream.avail_out)
+                initializedCount += written
             }
-
-            let written = bound - Int(unsafe stream.avail_out)
-            output.removeSubrange(written...)
-            return output
         }
     }
 }

@@ -45,8 +45,10 @@ let package = Package(
             swiftSettings: swiftSettings,
         ),
         .testTarget(
-            name: "CompressionTests",
-            dependencies: [.target(name: "CompressionDeflate")],
+            name: "DeflateTests",
+            dependencies: [
+                .target(name: "CompressionDeflate")
+            ],
         ),
     ]
 )
@@ -56,8 +58,10 @@ var swiftSettings: [SwiftSetting] {
         .strictMemorySafety(),
         .interoperabilityMode(.C),
         .enableExperimentalFeature("SafeInteropWrappers"),
-        .unsafeFlags(["-Xcc", "-fexperimental-bounds-safety-attributes"]),
-        .enableExperimentalFeature("Lifetimes"),
         .enableExperimentalFeature("SuppressedAssociatedTypes"),
+        .enableExperimentalFeature("Lifetimes"),
+        // https://github.com/swiftlang/swift/issues/88864
+        // .enableExperimentalFeature("Embedded"),
+        .treatWarning("EmbeddedRestrictions", as: .warning),
     ]
 }

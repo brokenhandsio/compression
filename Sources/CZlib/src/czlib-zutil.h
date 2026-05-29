@@ -14,14 +14,14 @@
 #define ZUTIL_H
 
 #ifdef HAVE_HIDDEN
-#  define ZLIB_INTERNAL __attribute__((visibility ("hidden")))
+#  define CZLIB_ZLIB_INTERNAL __attribute__((visibility ("hidden")))
 #else
-#  define ZLIB_INTERNAL
+#  define CZLIB_ZLIB_INTERNAL
 #endif
 
-#include "zlib.h"
+#include "czlib-zlib.h"
 
-#if defined(STDC) && !defined(Z_SOLO)
+#if defined(STDC) && !defined(CZLIB_Z_SOLO)
 #  if !(defined(_WIN32_WCE) && defined(_MSC_VER))
 #    include <stddef.h>
 #  endif
@@ -42,21 +42,21 @@ typedef unsigned short ush;
 typedef ush FAR ushf;
 typedef unsigned long  ulg;
 
-#if !defined(Z_U8) && !defined(Z_SOLO) && defined(STDC)
+#if !defined(CZLIB_Z_U8) && !defined(CZLIB_Z_SOLO) && defined(STDC)
 #  include <limits.h>
 #  if (ULONG_MAX == 0xffffffffffffffff)
-#    define Z_U8 unsigned long
+#    define CZLIB_Z_U8 unsigned long
 #  elif (ULLONG_MAX == 0xffffffffffffffff)
-#    define Z_U8 unsigned long long
+#    define CZLIB_Z_U8 unsigned long long
 #  elif (UINT_MAX == 0xffffffffffffffff)
-#    define Z_U8 unsigned
+#    define CZLIB_Z_U8 unsigned
 #  endif
 #endif
 
-extern z_const char * const z_errmsg[10]; /* indexed by 2-zlib_error */
+extern czlib_z_const char * const czlib_z_errmsg[10]; /* indexed by 2-zlib_error */
 /* (size given to avoid silly warnings with Visual C++) */
 
-#define ERR_MSG(err) z_errmsg[(err) < -6 || (err) > 2 ? 9 : 2 - (err)]
+#define ERR_MSG(err) czlib_z_errmsg[(err) < -6 || (err) > 2 ? 9 : 2 - (err)]
 
 #define ERR_RETURN(strm,err) \
   return (strm->msg = ERR_MSG(err), (err))
@@ -91,7 +91,7 @@ extern z_const char * const z_errmsg[10]; /* indexed by 2-zlib_error */
 
 #if defined(MSDOS) || (defined(WINDOWS) && !defined(WIN32))
 #  define OS_CODE  0x00
-#  ifndef Z_SOLO
+#  ifndef CZLIB_Z_SOLO
 #    if defined(__TURBOC__) || defined(__BORLANDC__)
 #      if (__STDC__ == 1) && (defined(__LARGE__) || defined(__COMPACT__))
          /* Allow compilation with ANSI keywords only enabled */
@@ -132,7 +132,7 @@ extern z_const char * const z_errmsg[10]; /* indexed by 2-zlib_error */
 
 #ifdef OS2
 #  define OS_CODE  6
-#  if defined(M_I86) && !defined(Z_SOLO)
+#  if defined(M_I86) && !defined(CZLIB_Z_SOLO)
 #    include <malloc.h>
 #  endif
 #endif
@@ -170,9 +170,9 @@ extern z_const char * const z_errmsg[10]; /* indexed by 2-zlib_error */
 /* provide prototypes for these when building zlib without LFS */
 #if !defined(_WIN32) && \
     (!defined(_LARGEFILE64_SOURCE) || _LFS64_LARGEFILE-0 == 0)
-    ZEXTERN uLong ZEXPORT adler32_combine64(uLong, uLong, z_off_t);
-    ZEXTERN uLong ZEXPORT crc32_combine64(uLong, uLong, z_off_t);
-    ZEXTERN uLong ZEXPORT crc32_combine_gen64(z_off_t);
+    ZEXTERN uLong ZEXPORT adler32_combine64(uLong, uLong, czlib_z_off_t);
+    ZEXTERN uLong ZEXPORT crc32_combine64(uLong, uLong, czlib_z_off_t);
+    ZEXTERN uLong ZEXPORT crc32_combine_gen64(czlib_z_off_t);
 #endif
 
         /* common defaults */
@@ -187,7 +187,7 @@ extern z_const char * const z_errmsg[10]; /* indexed by 2-zlib_error */
 
          /* functions */
 
-#if defined(pyr) || defined(Z_SOLO)
+#if defined(pyr) || defined(CZLIB_Z_SOLO)
 #  define NO_MEMCPY
 #endif
 #if defined(SMALL_MEDIUM) && !defined(_MSC_VER) && !defined(__SC__)
@@ -211,22 +211,22 @@ extern z_const char * const z_errmsg[10]; /* indexed by 2-zlib_error */
 #    define zmemzero(dest, len) memset(dest, 0, len)
 #  endif
 #else
-   void ZLIB_INTERNAL zmemcpy(Bytef* dest, const Bytef* source, uInt len);
-   int ZLIB_INTERNAL zmemcmp(const Bytef* s1, const Bytef* s2, uInt len);
-   void ZLIB_INTERNAL zmemzero(Bytef* dest, uInt len);
+   void CZLIB_ZLIB_INTERNAL zmemcpy(Bytef* dest, const Bytef* source, uInt len);
+   int CZLIB_ZLIB_INTERNAL zmemcmp(const Bytef* s1, const Bytef* s2, uInt len);
+   void CZLIB_ZLIB_INTERNAL zmemzero(Bytef* dest, uInt len);
 #endif
 
 /* Diagnostic functions */
-#ifdef ZLIB_DEBUG
+#ifdef CZLIB_ZLIB_DEBUG
 #  include <stdio.h>
-   extern int ZLIB_INTERNAL z_verbose;
-   extern void ZLIB_INTERNAL z_error(char *m);
-#  define Assert(cond,msg) {if(!(cond)) z_error(msg);}
-#  define Trace(x) {if (z_verbose>=0) fprintf x ;}
-#  define Tracev(x) {if (z_verbose>0) fprintf x ;}
-#  define Tracevv(x) {if (z_verbose>1) fprintf x ;}
-#  define Tracec(c,x) {if (z_verbose>0 && (c)) fprintf x ;}
-#  define Tracecv(c,x) {if (z_verbose>1 && (c)) fprintf x ;}
+   extern int CZLIB_ZLIB_INTERNAL czlib_z_verbose;
+   extern void CZLIB_ZLIB_INTERNAL czlib_z_error(char *m);
+#  define Assert(cond,msg) {if(!(cond)) czlib_z_error(msg);}
+#  define Trace(x) {if (czlib_z_verbose>=0) fprintf x ;}
+#  define Tracev(x) {if (czlib_z_verbose>0) fprintf x ;}
+#  define Tracevv(x) {if (czlib_z_verbose>1) fprintf x ;}
+#  define Tracec(c,x) {if (czlib_z_verbose>0 && (c)) fprintf x ;}
+#  define Tracecv(c,x) {if (czlib_z_verbose>1 && (c)) fprintf x ;}
 #else
 #  define Assert(cond,msg)
 #  define Trace(x)
@@ -236,10 +236,10 @@ extern z_const char * const z_errmsg[10]; /* indexed by 2-zlib_error */
 #  define Tracecv(c,x)
 #endif
 
-#ifndef Z_SOLO
-   voidpf ZLIB_INTERNAL zcalloc(voidpf opaque, unsigned items,
+#ifndef CZLIB_Z_SOLO
+   voidpf CZLIB_ZLIB_INTERNAL zcalloc(voidpf opaque, unsigned items,
                                 unsigned size);
-   void ZLIB_INTERNAL zcfree(voidpf opaque, voidpf ptr);
+   void CZLIB_ZLIB_INTERNAL zcfree(voidpf opaque, voidpf ptr);
 #endif
 
 #define ZALLOC(strm, items, size) \

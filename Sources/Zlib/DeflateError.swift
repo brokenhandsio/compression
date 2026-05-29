@@ -2,10 +2,17 @@ import CZlib
 
 extension Deflate {
     public enum Error: Swift.Error, CustomStringConvertible, Sendable {
+        /// zlib couldn't allocate memory for its internal state.
         case insufficientMemory
+        /// Input is not a valid deflate/zlib/gzip stream.
         case corruptData
-        case bufferOverflow
+        /// Caller-supplied `OutputSpan` ran out of room before compression finished.
+        case outputBufferTooSmall
+        /// Output would exceed `DecompressionConfiguration.maxDecompressedSize`.
+        case maxDecompressedSizeExceeded
+        /// Unexpected zlib state. Indicates a bug in this package.
         case internalError
+        /// Raw zlib error code and message, for codes that don't map to one of the above.
         case zlib(code: Int32, message: String)
 
         @usableFromInline
@@ -16,12 +23,12 @@ extension Deflate {
             } else {
                 msg =
                     switch code {
-                    case Z_ERRNO: "File I/O error"
-                    case Z_STREAM_ERROR: "Stream state inconsistent"
-                    case Z_DATA_ERROR: "Invalid or corrupted data"
-                    case Z_MEM_ERROR: "Insufficient memory"
-                    case Z_BUF_ERROR: "No progress possible"
-                    case Z_VERSION_ERROR: "Incompatible zlib version"
+                    case CZLIB_Z_ERRNO: "File I/O error"
+                    case CZLIB_Z_STREAM_ERROR: "Stream state inconsistent"
+                    case CZLIB_Z_DATA_ERROR: "Invalid or corrupted data"
+                    case CZLIB_Z_MEM_ERROR: "Insufficient memory"
+                    case CZLIB_Z_BUF_ERROR: "No progress possible"
+                    case CZLIB_Z_VERSION_ERROR: "Incompatible zlib version"
                     default: "Unknown zlib error (\(code))"
                     }
             }
@@ -32,7 +39,8 @@ extension Deflate {
             switch self {
             case .insufficientMemory: "Deflate.Error: insufficient memory"
             case .corruptData: "Deflate.Error: invalid or corrupted data"
-            case .bufferOverflow: "Deflate.Error: output buffer too small"
+            case .outputBufferTooSmall: "Deflate.Error: output buffer too small"
+            case .maxDecompressedSizeExceeded: "Deflate.Error: max decompressed size exceeded"
             case .internalError: "Deflate.Error: internal error"
             case .zlib(let code, let message): "Deflate.Error(\(code)): \(message)"
             }

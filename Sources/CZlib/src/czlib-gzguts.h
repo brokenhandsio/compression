@@ -12,13 +12,13 @@
 #endif
 
 #ifdef HAVE_HIDDEN
-#  define ZLIB_INTERNAL __attribute__((visibility ("hidden")))
+#  define CZLIB_ZLIB_INTERNAL __attribute__((visibility ("hidden")))
 #else
-#  define ZLIB_INTERNAL
+#  define CZLIB_ZLIB_INTERNAL
 #endif
 
 #include <stdio.h>
-#include "zlib.h"
+#include "czlib-zlib.h"
 #ifdef STDC
 #  include <string.h>
 #  include <stdlib.h>
@@ -138,9 +138,9 @@
 /* provide prototypes for these when building zlib without LFS */
 #if !defined(_LARGEFILE64_SOURCE) || _LFS64_LARGEFILE-0 == 0
     ZEXTERN gzFile ZEXPORT gzopen64(const char *, const char *);
-    ZEXTERN z_off64_t ZEXPORT gzseek64(gzFile, z_off64_t, int);
-    ZEXTERN z_off64_t ZEXPORT gztell64(gzFile);
-    ZEXTERN z_off64_t ZEXPORT gzoffset64(gzFile);
+    ZEXTERN czlib_z_off64_t ZEXPORT gzseek64(gzFile, czlib_z_off64_t, int);
+    ZEXTERN czlib_z_off64_t ZEXPORT gztell64(gzFile);
+    ZEXTERN czlib_z_off64_t ZEXPORT gzoffset64(gzFile);
 #endif
 
 /* default memLevel */
@@ -183,32 +183,32 @@ typedef struct {
     int direct;             /* 0 if processing gzip, 1 if transparent */
         /* just for reading */
     int how;                /* 0: get header, 1: copy, 2: decompress */
-    z_off64_t start;        /* where the gzip data started, for rewinding */
+    czlib_z_off64_t start;        /* where the gzip data started, for rewinding */
     int eof;                /* true if end of input file reached */
     int past;               /* true if read requested past end */
         /* just for writing */
     int level;              /* compression level */
     int strategy;           /* compression strategy */
-    int reset;              /* true if a reset is pending after a Z_FINISH */
+    int reset;              /* true if a reset is pending after a CZLIB_Z_FINISH */
         /* seek request */
-    z_off64_t skip;         /* amount to skip (already rewound if backwards) */
+    czlib_z_off64_t skip;         /* amount to skip (already rewound if backwards) */
     int seek;               /* true if seek request pending */
         /* error information */
     int err;                /* error code */
     char *msg;              /* error message */
         /* zlib inflate or deflate stream */
-    z_stream strm;          /* stream structure in-place (not a pointer) */
+    czlib_z_stream strm;          /* stream structure in-place (not a pointer) */
 } gz_state;
 typedef gz_state FAR *gz_statep;
 
 /* shared functions */
-void ZLIB_INTERNAL gz_error(gz_statep, int, const char *);
+void CZLIB_ZLIB_INTERNAL gz_error(gz_statep, int, const char *);
 #if defined UNDER_CE
-char ZLIB_INTERNAL *gz_strwinerror(DWORD error);
+char CZLIB_ZLIB_INTERNAL *gz_strwinerror(DWORD error);
 #endif
 
-/* GT_OFF(x), where x is an unsigned value, is true if x > maximum z_off64_t
-   value -- needed when comparing unsigned to z_off64_t, which is signed
-   (possible z_off64_t types off_t, off64_t, and long are all signed) */
-unsigned ZLIB_INTERNAL gz_intmax(void);
-#define GT_OFF(x) (sizeof(int) == sizeof(z_off64_t) && (x) > gz_intmax())
+/* GT_OFF(x), where x is an unsigned value, is true if x > maximum czlib_z_off64_t
+   value -- needed when comparing unsigned to czlib_z_off64_t, which is signed
+   (possible czlib_z_off64_t types off_t, off64_t, and long are all signed) */
+unsigned CZLIB_ZLIB_INTERNAL gz_intmax(void);
+#define GT_OFF(x) (sizeof(int) == sizeof(czlib_z_off64_t) && (x) > gz_intmax())
