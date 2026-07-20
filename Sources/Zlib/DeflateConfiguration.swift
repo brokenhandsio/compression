@@ -37,15 +37,27 @@ extension Deflate {
         public let maxDecompressedSize: Int?
         /// Initial capacity hint for the output buffer. Doesn't constrain the result.
         public let decompressedSizeHint: Int?
+        /// Gzip allows concatenating different streams (members).
+        /// This setting configures what to do when we encounter another member after streaming the first one is done.
+        ///
+        /// When `true`, end-of-stream followed by more input restarts decompression;
+        /// trailing bytes that don't form a valid stream throw ``Deflate/Error/corruptData``.
+        /// When `false`, any byte after end-of-stream throws
+        /// ``Deflate/Error/unexpectedTrailingData``.
+        ///
+        /// Defaults to `true` for ``Deflate/Format/gzip``, `false` for zlib and raw deflate.
+        public let allowsConcatenatedStreams: Bool
 
         public init(
             format: Deflate.Format = .zlib,
             maxDecompressedSize: Int? = nil,
-            decompressedSizeHint: Int? = nil
+            decompressedSizeHint: Int? = nil,
+            allowsConcatenatedStreams: Bool? = nil
         ) {
             self.format = format
             self.maxDecompressedSize = maxDecompressedSize
             self.decompressedSizeHint = decompressedSizeHint
+            self.allowsConcatenatedStreams = allowsConcatenatedStreams ?? (format == .gzip)
         }
 
         public static let `default` = Self()
@@ -91,6 +103,16 @@ extension Deflate {
             case .zlib: 15
             case .raw: -15
             case .gzip: 31  // 15 + 16
+            }
+        }
+
+        /// Extra output-bound padding on top of `compressBound`, which only
+        /// budgets for zlib framing (2-byte header + 4-byte Adler-32 trailer).
+        /// gzip framing is 18 bytes: 10-byte header + 8-byte CRC-32/size trailer.
+        var extraBoundOverhead: Int {
+            switch self {
+            case .zlib, .raw: 0
+            case .gzip: 12
             }
         }
     }

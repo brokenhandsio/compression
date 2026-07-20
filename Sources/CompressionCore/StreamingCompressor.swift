@@ -4,7 +4,7 @@
 /// to flush the final block.
 public protocol StreamingCompressor: ~Copyable, Sendable {
     associatedtype Configuration: CompressionParameters
-    associatedtype Failure: Swift.Error
+    associatedtype Failure: Swift.Error = Never
 
     var configuration: Configuration { get }
 

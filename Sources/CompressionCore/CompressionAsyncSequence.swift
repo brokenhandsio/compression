@@ -5,6 +5,11 @@ public struct CompressionAsyncSequence<
     BackingSequence: AsyncSequence,
     Algorithm: StreamingCompressionAlgorithm
 >: AsyncSequence where BackingSequence.Element: CompressibleInput {
+    public enum Failure: Error {
+        case compressorError(Algorithm.StreamingCompressor.Failure)
+        case backingStreamError(BackingSequence.Failure)
+    }
+
     let backingSequence: BackingSequence
     let configuration: Algorithm.CompressionConfiguration
 
@@ -29,20 +34,36 @@ public struct CompressionAsyncSequence<
         var compressor: CompressorBox<Algorithm.StreamingCompressor>
         var finished = false
 
-        public mutating func next(isolation actor: isolated (any Actor)? = #isolation) async throws(Error) -> [UInt8]? {
-            if let chunk = try await backingIterator.next(isolation: actor) {
+        public mutating func next(isolation actor: isolated (any Actor)? = #isolation) async throws(Failure) -> [UInt8]? {
+            let chunk: BackingSequence.Element?
+
+            do {
+                chunk = try await backingIterator.next(isolation: actor)
+            } catch {
+                throw .backingStreamError(error)
+            }
+
+            if let chunk {
                 compressor.buffer.removeAll(keepingCapacity: true)
-                try chunk.withSpan { inputSpan in
-                    try compressor.value.compress(inputSpan) { resultSpan in
-                        unsafe compressor.buffer.append(span: resultSpan)
+                do {
+                    try chunk.withSpan { inputSpan throws(Algorithm.StreamingCompressor.Failure) in
+                        try compressor.value.compress(inputSpan) { resultSpan in
+                            unsafe compressor.buffer.append(span: resultSpan)
+                        }
                     }
+                } catch {
+                    throw .compressorError(error)
                 }
                 return compressor.buffer
             } else if !finished {
                 compressor.buffer.removeAll(keepingCapacity: true)
                 defer { finished = true }
-                try compressor.value.finish { resultSpan in
-                    unsafe compressor.buffer.append(span: resultSpan)
+                do {
+                    try compressor.value.finish { resultSpan throws(Algorithm.StreamingCompressor.Failure) in
+                        unsafe compressor.buffer.append(span: resultSpan)
+                    }
+                } catch {
+                    throw .compressorError(error)
                 }
                 return compressor.buffer
             }

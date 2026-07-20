@@ -2,6 +2,11 @@ import CZlib
 import CompressionCore
 
 extension Deflate {
+    /// Stateless, one-shot deflate decompressor.
+    ///
+    /// Each call to `decompress` creates and destroys a fresh zlib stream.
+    /// For decompressing many chunks as part of a single logical stream - where
+    /// LZ77 context should carry across boundaries - use ``Deflate.StreamingDecompressor``.
     public struct Decompressor: CompressionCore.Decompressor {
         public let configuration: DecompressionConfiguration
 
@@ -14,13 +19,12 @@ extension Deflate {
             var output = [UInt8]()
             try input.withSpan { span throws(Deflate.Error) in
                 output.reserveCapacity(configuration.decompressedSizeHint ?? span.count * 4)
-                var total = 0
                 try streaming.decompress(span) { produced throws(Deflate.Error) in
-                    total += produced.count
-                    if let cap = configuration.maxDecompressedSize, total > cap { throw .maxDecompressedSizeExceeded }
                     unsafe output.append(span: produced)
                 }
             }
+            // One-shot: all input was provided, so the stream must have ended.
+            guard streaming.isFinished else { throw .truncatedInput }
             return output
         }
 
@@ -51,7 +55,7 @@ extension Deflate {
             unsafe stream.next_in = CZlib_voidPtr_to_BytefPtr(input)
             var status: Int32 = CZLIB_Z_OK
 
-            while status != CZLIB_Z_STREAM_END {
+            decode: while true {
                 unsafe try output.withUnsafeMutableBufferPointer { tail, initializedCount throws(Deflate.Error) in
                     let free = tail.count - initializedCount
                     if free == 0 { throw .outputBufferTooSmall }
@@ -68,9 +72,30 @@ extension Deflate {
                     case CZLIB_Z_OK, CZLIB_Z_STREAM_END: break
                     case CZLIB_Z_DATA_ERROR: throw .corruptData
                     case CZLIB_Z_MEM_ERROR: throw .insufficientMemory
-                    case CZLIB_Z_BUF_ERROR: throw .outputBufferTooSmall
+                    case CZLIB_Z_BUF_ERROR:
+                        // inflate made no progress. avail_in == 0 means the stream
+                        // ended mid-block (truncated/incomplete input)
+                        if unsafe stream.avail_in == 0 {
+                            throw .truncatedInput
+                        } else {
+                            throw .outputBufferTooSmall
+                        }
                     default: throw .internalError
                     }
+                }
+
+                if status == CZLIB_Z_STREAM_END {
+                    if unsafe stream.avail_in == 0 { break decode }
+                    // Input continues past end-of-stream.
+                    guard configuration.allowsConcatenatedStreams else {
+                        throw .unexpectedTrailingData
+                    }
+                    // Another member follows: restart and keep
+                    // decompressing into the remaining output space.
+                    guard unsafe czlib_z_inflateReset(&stream) == CZLIB_Z_OK else {
+                        throw .internalError
+                    }
+                    status = CZLIB_Z_OK
                 }
             }
         }

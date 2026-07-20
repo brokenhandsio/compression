@@ -7,6 +7,14 @@ public protocol StreamingDecompressor: ~Copyable, Sendable {
 
     var configuration: Configuration { get }
 
+    /// True once the format's end-of-stream marker has been observed.
+    ///
+    /// Compression formats are self-terminating, so this is the only way to
+    /// distinguish a completely decompressed stream from one whose input was
+    /// truncated. Consumers should check this after the last chunk has been
+    /// fed and treat `false` as an error.
+    var isFinished: Bool { get }
+
     init(configuration: Configuration)
 
     /// Decompress `chunk` and call `handler` with each produced output span.

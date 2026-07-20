@@ -5,6 +5,13 @@ public struct DecompressionAsyncSequence<
     BackingSequence: AsyncSequence,
     Algorithm: StreamingDecompressionAlgorithm
 >: AsyncSequence where BackingSequence.Element: CompressibleInput {
+    public enum Failure: Error {
+        case decompressorError(Algorithm.StreamingDecompressor.Failure)
+        /// Input ended before the format's end-of-stream marker was observed.
+        case truncatedStream
+        case backingStreamError(BackingSequence.Failure)
+    }
+
     let backingSequence: BackingSequence
     let configuration: Algorithm.DecompressionConfiguration
 
@@ -28,13 +35,30 @@ public struct DecompressionAsyncSequence<
         var backingIterator: BackingSequence.AsyncIterator
         var decompressor: DecompressorBox<Algorithm.StreamingDecompressor>
 
-        public mutating func next(isolation actor: isolated (any Actor)? = #isolation) async throws(Error) -> [UInt8]? {
-            guard let chunk = try await backingIterator.next(isolation: actor) else { return nil }
+        public mutating func next(isolation actor: isolated (any Actor)? = #isolation) async throws(Failure) -> [UInt8]? {
+            let chunk: BackingSequence.Element?
+            do {
+                chunk = try await backingIterator.next(isolation: actor)
+            } catch {
+                throw .backingStreamError(error)
+            }
+
+            guard let chunk else {
+                // There's no more input data: the stream must have reached its
+                // end-of-stream marker, otherwise the data was truncated.
+                guard decompressor.value.isFinished else { throw .truncatedStream }
+                return nil
+            }
+
             decompressor.buffer.removeAll(keepingCapacity: true)
-            try chunk.withSpan { inputSpan in
-                try decompressor.value.decompress(inputSpan) { resultSpan in
-                    unsafe decompressor.buffer.append(span: resultSpan)
+            do {
+                try chunk.withSpan { inputSpan throws(Algorithm.StreamingDecompressor.Failure) in
+                    try decompressor.value.decompress(inputSpan) { resultSpan in
+                        unsafe decompressor.buffer.append(span: resultSpan)
+                    }
                 }
+            } catch {
+                throw .decompressorError(error)
             }
             return decompressor.buffer
         }

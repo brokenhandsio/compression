@@ -15,7 +15,7 @@ extension Deflate {
     ///
     /// Each call to `compress` creates and destroys a fresh zlib stream.
     /// For compressing many chunks as part of a single logical stream - where
-    /// LZ77 context should carry across boundaries - use `DeflateCompressorStream`.
+    /// LZ77 context should carry across boundaries - use `Deflate.StreamingCompressor`.
     public struct Compressor: CompressionCore.Compressor {
         public let configuration: CompressionConfiguration
 
@@ -25,7 +25,10 @@ extension Deflate {
 
         public func compress(_ input: some CompressibleInput) throws(Deflate.Error) -> [UInt8] {
             try input.withSpan { span throws(Deflate.Error) in
+                // compressBound assumes zlib framing (6 bytes of overhead);
+                // pad for formats with larger framing.
                 let bound = Int(czlib_z_compressBound(czlib_z_uLong(span.count)))
+                    + configuration.format.extraBoundOverhead
                 return try [UInt8](capacity: bound) { outputSpan throws(Deflate.Error) in
                     try compress(span, into: &outputSpan)
                 }

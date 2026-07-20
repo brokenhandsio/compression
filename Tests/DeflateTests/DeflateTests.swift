@@ -181,6 +181,8 @@ extension Deflate.Error: Equatable {
         case (.corruptData, .corruptData): true
         case (.outputBufferTooSmall, .outputBufferTooSmall): true
         case (.maxDecompressedSizeExceeded, .maxDecompressedSizeExceeded): true
+        case (.truncatedInput, .truncatedInput): true
+        case (.unexpectedTrailingData, .unexpectedTrailingData): true
         case (.internalError, .internalError): true
         case (.zlib(code: let lhsCode, message: let lhsMessage), .zlib(code: let rhsCode, message: let rhsMessage)):
             lhsCode == rhsCode && lhsMessage == rhsMessage

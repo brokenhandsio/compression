@@ -58,6 +58,23 @@ struct AsyncSequenceTests {
         #expect(output == data)
     }
 
+    @Test("Truncated input throws .truncatedStream")
+    func truncatedInputThrows() async throws {
+        let data = Array(repeating: UInt8(0x61), count: 50_000)
+        let compressed = try Deflate.Compressor().compress(data)
+        let truncated = Array(compressed[..<(compressed.count / 2)])
+
+        let stream = makeStream(for: truncated, chunkSize: 1024).decompressed(using: Deflate.self)
+        await #expect {
+            for try await _ in stream {}
+        } throws: { error in
+            guard case .truncatedStream = error as? DecompressionAsyncSequence<AsyncStream<ArraySlice<UInt8>>, Deflate>.Failure else {
+                return false
+            }
+            return true
+        }
+    }
+
     private func makeStream<Body: Collection & Sendable>(
         for message: Body,
         chunkSize: Int = 16

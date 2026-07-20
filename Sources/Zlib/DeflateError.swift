@@ -8,6 +8,12 @@ extension Deflate {
         case corruptData
         /// Caller-supplied `OutputSpan` ran out of room before compression finished.
         case outputBufferTooSmall
+        /// Input ended in the middle of a deflate stream. The data is incomplete;
+        /// retrying with a larger output buffer will not help — more input is needed.
+        case truncatedInput
+        /// Input continued past end-of-stream and
+        /// `DecompressionConfiguration.allowsConcatenatedStreams` is `false`.
+        case unexpectedTrailingData
         /// Output would exceed `DecompressionConfiguration.maxDecompressedSize`.
         case maxDecompressedSizeExceeded
         /// Unexpected zlib state. Indicates a bug in this package.
@@ -40,11 +46,12 @@ extension Deflate {
             case .insufficientMemory: "Deflate.Error: insufficient memory"
             case .corruptData: "Deflate.Error: invalid or corrupted data"
             case .outputBufferTooSmall: "Deflate.Error: output buffer too small"
+            case .truncatedInput: "Deflate.Error: truncated or incomplete input"
+            case .unexpectedTrailingData: "Deflate.Error: unexpected trailing data after end of stream"
             case .maxDecompressedSizeExceeded: "Deflate.Error: max decompressed size exceeded"
             case .internalError: "Deflate.Error: internal error"
             case .zlib(let code, let message): "Deflate.Error(\(code)): \(message)"
             }
         }
     }
-
 }
