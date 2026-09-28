@@ -21,8 +21,9 @@ public protocol StreamingDecompressor: ~Copyable, Sendable {
     ///
     /// The handler may be called zero or more times per invocation, depending
     /// on the compression ratio and internal buffer size.
+    @discardableResult
     mutating func decompress(
         _ chunk: Span<UInt8>,
         handler: (Span<UInt8>) throws(Failure) -> Void
-    ) throws(Failure)
+    ) throws(Failure) -> Int
 }

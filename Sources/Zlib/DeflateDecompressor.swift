@@ -19,8 +19,13 @@ extension Deflate {
             var output = [UInt8]()
             try input.withSpan { span throws(Deflate.Error) in
                 output.reserveCapacity(configuration.decompressedSizeHint ?? span.count * 4)
-                try streaming.decompress(span) { produced throws(Deflate.Error) in
+                let decompressed = try streaming.decompress(span) { produced throws(Deflate.Error) in
                     unsafe output.append(span: produced)
+                }
+
+                // There's more data than expected in the input
+                if configuration.trailingDataPolicy == .reject, decompressed != input.count {
+                    throw .unexpectedTrailingData
                 }
             }
             // One-shot: all input was provided, so the stream must have ended.
@@ -85,11 +90,18 @@ extension Deflate {
                 }
 
                 if status == CZLIB_Z_STREAM_END {
-                    if unsafe stream.avail_in == 0 { break decode }
-                    // Input continues past end-of-stream.
-                    guard configuration.allowsConcatenatedStreams else {
-                        throw .unexpectedTrailingData
+                    if unsafe stream.avail_in == 0 {
+                        return
                     }
+                    switch configuration.trailingDataPolicy {
+                    case .reject:
+                        // Input continues past end-of-stream.
+                        throw .unexpectedTrailingData
+
+                    case .concatenate, .stop:
+                        break
+                    }
+
                     // Another member follows: restart and keep
                     // decompressing into the remaining output space.
                     guard unsafe czlib_z_inflateReset(&stream) == CZLIB_Z_OK else {

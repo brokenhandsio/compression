@@ -3,6 +3,8 @@
 /// `~Escapable` so non-escapable types like `Span<UInt8>` can conform directly.
 public protocol CompressibleInput: ~Escapable {
     func withSpan<R, E: Error>(_ body: (Span<UInt8>) throws(E) -> R) throws(E) -> R
+
+    var count: Int { get }
 }
 
 extension [UInt8]: CompressibleInput {

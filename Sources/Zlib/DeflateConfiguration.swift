@@ -32,36 +32,46 @@ extension Deflate {
         public static let best = Self(level: .best)
     }
 
+    /// Declares what to do when bytes are encountered after the end of stream.
+    public enum TrailingDataPolicy: Sendable {
+        /// Throw `.unexpectedTrailingData`.
+        case reject
+        /// Ignore them and return decompressed count.
+        case stop
+        /// We're expecting another member, keep decompressing.
+        case concatenate
+    }
+
     public struct DecompressionConfiguration: CompressionParameters {
-        public let format: Format
-        public let maxDecompressedSize: Int?
+        public var format: Format
+        public var maxDecompressedSize: Int?
         /// Initial capacity hint for the output buffer. Doesn't constrain the result.
-        public let decompressedSizeHint: Int?
+        public var decompressedSizeHint: Int?
         /// Gzip allows concatenating different streams (members).
         /// This setting configures what to do when we encounter another member after streaming the first one is done.
-        ///
-        /// When `true`, end-of-stream followed by more input restarts decompression;
-        /// trailing bytes that don't form a valid stream throw ``Deflate/Error/corruptData``.
-        /// When `false`, any byte after end-of-stream throws
-        /// ``Deflate/Error/unexpectedTrailingData``.
-        ///
-        /// Defaults to `true` for ``Deflate/Format/gzip``, `false` for zlib and raw deflate.
-        public let allowsConcatenatedStreams: Bool
+        public var trailingDataPolicy: TrailingDataPolicy
 
-        public init(
+        public init() {
+            self.format = .zlib
+            self.maxDecompressedSize = nil
+            self.decompressedSizeHint = nil
+            self.trailingDataPolicy = .reject
+        }
+
+        package init(
             format: Deflate.Format = .zlib,
             maxDecompressedSize: Int? = nil,
             decompressedSizeHint: Int? = nil,
-            allowsConcatenatedStreams: Bool? = nil
+            trailingDataPolicy: TrailingDataPolicy = .reject
         ) {
             self.format = format
             self.maxDecompressedSize = maxDecompressedSize
             self.decompressedSizeHint = decompressedSizeHint
-            self.allowsConcatenatedStreams = allowsConcatenatedStreams ?? (format == .gzip)
+            self.trailingDataPolicy = trailingDataPolicy
         }
 
         public static let `default` = Self()
-        public static let gzip = Self(format: .gzip)
+        public static let gzip = Self(format: .gzip, trailingDataPolicy: .concatenate)
     }
 }
 

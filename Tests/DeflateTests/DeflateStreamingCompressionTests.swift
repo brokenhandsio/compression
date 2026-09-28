@@ -145,7 +145,7 @@ let formatRoundTripCases: [FormatRoundTripCase] = [
     .init(
         name: "raw",
         compress: Deflate.CompressionConfiguration(format: .raw),
-        decompress: Deflate.DecompressionConfiguration(format: .raw)
+        decompress: .init(format: .raw)
     ),
     .init(name: "zlib/fast", compress: .fast, decompress: .default),
     .init(name: "zlib/best", compress: .best, decompress: .default),

@@ -1,8 +1,8 @@
 import CompressionDeflate
 import Testing
 
-@Suite("Deflate Streaming Decompressor")
-struct DeflateStreamingDecompressorTests {
+@Suite("Deflate Streaming Decompression Tests")
+struct DeflateStreamingDecompressionTests {
     @Test("Feed compressed data one byte at a time")
     func byteByByte() throws {
         let input = Array("Byte by byte decompression test!".utf8)
@@ -12,10 +12,8 @@ struct DeflateStreamingDecompressorTests {
         var output = [UInt8]()
 
         for byte in compressed {
-            try [byte].withSpan { span in
-                try decompressor.decompress(span) { chunk in
-                    output.append(span: chunk)
-                }
+            try decompressor.decompress([byte].span) { chunk in
+                output.append(span: chunk)
             }
         }
 
@@ -32,11 +30,9 @@ struct DeflateStreamingDecompressorTests {
         output.reserveCapacity(input.count)
 
         var handlerCallCount = 0
-        try compressed.withSpan { span in
-            try decompressor.decompress(span) { chunk in
-                handlerCallCount += 1
-                output.append(span: chunk)
-            }
+        try decompressor.decompress(compressed.span) { chunk in
+            handlerCallCount += 1
+            output.append(span: chunk)
         }
 
         #expect(output == input)
@@ -57,10 +53,8 @@ struct DeflateStreamingDecompressorTests {
         var offset = 0
         while offset < compressed.count {
             let end = min(compressed.count, offset + chunkSize)
-            try compressed[offset..<end].withSpan { span in
-                try decompressor.decompress(span) { chunk in
-                    output.append(span: chunk)
-                }
+            try decompressor.decompress(compressed[offset..<end].span) { chunk in
+                output.append(span: chunk)
             }
             offset = end
         }
@@ -76,10 +70,8 @@ struct DeflateStreamingDecompressorTests {
         var decompressor = Deflate.StreamingDecompressor(configuration: testCase.decompress)
         var output = [UInt8]()
 
-        try compressed.withSpan { span in
-            try decompressor.decompress(span) { chunk in
-                output.append(span: chunk)
-            }
+        try decompressor.decompress(compressed.span) { chunk in
+            output.append(span: chunk)
         }
 
         #expect(output == input)
@@ -105,20 +97,22 @@ struct DeflateStreamingDecompressorTests {
         var decompressor = Deflate.StreamingDecompressor(configuration: .default)
         var output = [UInt8]()
 
-        try [UInt8]().withSpan { span in
-            try decompressor.decompress(span) { _ in
-                Issue.record("handler must not be called for an empty chunk")
-            }
+        try decompressor.decompress([UInt8]().span) { _ in
+            Issue.record("handler must not be called for an empty chunk")
         }
-        do { let finished = decompressor.isFinished; #expect(!finished) }
+        do {
+            let finished = decompressor.isFinished
+            #expect(!finished)
+        }
 
-        try compressed.withSpan { span in
-            try decompressor.decompress(span) { chunk in
-                output.append(span: chunk)
-            }
+        try decompressor.decompress(compressed.span) { chunk in
+            output.append(span: chunk)
         }
         #expect(output == input)
-        do { let finished = decompressor.isFinished; #expect(finished) }
+        do {
+            let finished = decompressor.isFinished
+            #expect(finished)
+        }
     }
 
     @Test("maxDecompressedSize is enforced on the streaming path")
@@ -146,9 +140,7 @@ struct DeflateStreamingDecompressorTests {
         )
         #expect(throws: Deflate.Error.maxDecompressedSizeExceeded) {
             for byte in compressed {
-                try [byte].withSpan { span in
-                    try decompressor.decompress(span) { _ in }
-                }
+                try decompressor.decompress([byte].span) { _ in }
             }
         }
     }
@@ -163,73 +155,11 @@ struct StreamTerminationTests {
         let truncated = Array(compressed[..<(compressed.count / 2)])
 
         var decompressor = Deflate.StreamingDecompressor(configuration: .default)
-        try truncated.withSpan { span in
-            try decompressor.decompress(span) { _ in }
+        try decompressor.decompress(truncated.span) { _ in }
+        do {
+            let finished = decompressor.isFinished
+            #expect(!finished)
         }
-        do { let finished = decompressor.isFinished; #expect(!finished) }
-    }
-
-    @Test("One-shot decompress of truncated input throws truncatedInput")
-    func truncatedOneShot() throws {
-        let input = Array(repeating: UInt8(0x61), count: 50_000)
-        let compressed = try Deflate.Compressor().compress(input)
-        let truncated = Array(compressed[..<(compressed.count / 2)])
-
-        #expect(throws: Deflate.Error.truncatedInput) {
-            _ = try Deflate.Decompressor().decompress(truncated)
-        }
-    }
-
-    @Test("Trailing junk after a zlib stream throws unexpectedTrailingData")
-    func trailingJunkZlib() throws {
-        let input = Array("complete stream".utf8)
-        let compressed = try Deflate.Compressor().compress(input) + [0xDE, 0xAD, 0xBE, 0xEF]
-
-        #expect(throws: Deflate.Error.unexpectedTrailingData) {
-            _ = try Deflate.Decompressor().decompress(compressed)
-        }
-    }
-
-    @Test("Trailing junk in a later chunk throws unexpectedTrailingData")
-    func trailingJunkLaterChunk() throws {
-        let input = Array("complete stream".utf8)
-        let compressed = try Deflate.Compressor().compress(input)
-
-        var decompressor = Deflate.StreamingDecompressor(configuration: .default)
-        try compressed.withSpan { span in
-            try decompressor.decompress(span) { _ in }
-        }
-        do { let finished = decompressor.isFinished; #expect(finished) }
-
-        #expect(throws: Deflate.Error.unexpectedTrailingData) {
-            try [0xDE, 0xAD].withSpan { span in
-                try decompressor.decompress(span) { _ in }
-            }
-        }
-    }
-
-    @Test("Trailing junk after a gzip stream throws corruptData")
-    func trailingJunkGzip() throws {
-        // gzip defaults to concatenated-member support, so trailing bytes are
-        // parsed as the next member's header and fail as corrupt.
-        let input = Array("complete stream".utf8)
-        let compressed =
-            try Deflate.Compressor(configuration: .gzip).compress(input) + [0xDE, 0xAD, 0xBE, 0xEF]
-
-        #expect(throws: Deflate.Error.corruptData) {
-            _ = try Deflate.Decompressor(configuration: .gzip).decompress(compressed)
-        }
-    }
-
-    @Test("Concatenated gzip members decompress by default")
-    func concatenatedGzipMembers() throws {
-        let first = Array("first member, ".utf8)
-        let second = Array("second member".utf8)
-        let compressor = Deflate.Compressor(configuration: .gzip)
-        let compressed = try compressor.compress(first) + compressor.compress(second)
-
-        let output = try Deflate.Decompressor(configuration: .gzip).decompress(compressed)
-        #expect(output == first + second)
     }
 
     @Test("Concatenated gzip members split across chunks")
@@ -242,26 +172,117 @@ struct StreamTerminationTests {
         var decompressor = Deflate.StreamingDecompressor(configuration: .gzip)
         var output = [UInt8]()
         for byte in compressed {
-            try [byte].withSpan { span in
-                try decompressor.decompress(span) { chunk in
-                    output.append(span: chunk)
-                }
+            try decompressor.decompress([byte].span) { chunk in
+                output.append(span: chunk)
             }
         }
         #expect(output == first + second)
-        do { let finished = decompressor.isFinished; #expect(finished) }
+        do {
+            let finished = decompressor.isFinished
+            #expect(finished)
+        }
     }
 
-    @Test("Concatenated zlib streams decompress when opted in")
-    func concatenatedZlibOptIn() throws {
-        let first = Array("first stream, ".utf8)
-        let second = Array("second stream".utf8)
-        let compressor = Deflate.Compressor()
-        let compressed = try compressor.compress(first) + compressor.compress(second)
+    @Test(
+        "End of stream inside a later chunk reports the bytes consumed",
+        arguments: trailingDataFormatCases, [1, 4, 8, 64]
+    )
+    func endOfStreamInsideLaterChunk(testCase: FormatRoundTripCase, streamBytesInSecondChunk: Int) throws {
+        let input = Array(repeating: Array("The quick brown fox jumps over the lazy dog. ".utf8), count: 200)
+            .flatMap { $0 }
+        let compressed = try Deflate.Compressor(configuration: testCase.compress).compress(input)
+        let trailer: [UInt8] = [0xDE, 0xAD, 0xBE, 0xEF]
 
-        let output = try Deflate.Decompressor(
-            configuration: .init(allowsConcatenatedStreams: true)
-        ).decompress(compressed)
-        #expect(output == first + second)
+        let split = compressed.count - streamBytesInSecondChunk
+        let firstChunk = Array(compressed[..<split])
+        let secondChunk = Array(compressed[split...]) + trailer
+
+        var decompressor = Deflate.StreamingDecompressor(configuration: testCase.decompress)
+        var output = [UInt8]()
+
+        let firstConsumed = try decompressor.decompress(firstChunk.span) { chunk in
+            output.append(span: chunk)
+        }
+        #expect(firstConsumed == firstChunk.count)
+        do {
+            let finished = decompressor.isFinished
+            #expect(!finished)
+        }
+
+        let secondConsumed = try decompressor.decompress(secondChunk.span) { chunk in
+            output.append(span: chunk)
+        }
+        #expect(secondConsumed == streamBytesInSecondChunk)
+        #expect(Array(secondChunk[secondConsumed...]) == trailer)
+        #expect(output == input)
+        do {
+            let finished = decompressor.isFinished
+            #expect(finished)
+        }
+    }
+
+    @Test("Decompressing the whole stream returns correct count")
+    func decompressingWholeStreamCount() throws {
+        let input = Array("The quick brown fox jumps over the lazy dog. ".utf8)
+        let compressed = try Deflate.Compressor().compress(input)
+
+        var output = Deflate.StreamingDecompressor()
+        #expect(try output.decompress(compressed.span) { _ in } == compressed.count)
+    }
+
+    @Test("Decompressing various chunk sizes returns correct count", arguments: [1, 16, 256, 4096, 32768, 65536])
+    func decompressingVariousChunkSizesCount(chunkSize: Int) throws {
+        let input =
+            Array("The quick brown fox jumps over the lazy dog. ".utf8)
+            + Array(repeating: UInt8(0x00), count: 100_000)
+        let compressed = try Deflate.Compressor().compress(input)
+
+        var decompressor = Deflate.StreamingDecompressor()
+
+        var offset = 0
+        var sum = 0
+        while offset < compressed.count {
+            let end = min(compressed.count, offset + chunkSize)
+            let decompressed = try decompressor.decompress(compressed[offset..<end].span) { _ in }
+            #expect(decompressed == end - offset)
+            sum += decompressed
+            offset = end
+        }
+
+        #expect(sum == compressed.count)
+    }
+
+    @Test("Decompressing stream + tail bytes returns correct count")
+    func decompressingStreamPlusTailBytesCount() throws {
+        let input = Array("The quick brown fox jumps over the lazy dog. ".utf8)
+        let compressed = try Deflate.Compressor().compress(input)
+        let trailingBytes = [UInt8](repeating: .random(in: 0..<255), count: 100)
+        let compressedWithTrailingBytes = compressed + trailingBytes
+
+        var decompressor = Deflate.StreamingDecompressor(configuration: .init(trailingDataPolicy: .stop))
+        var output = [UInt8]()
+
+        let consumed = try decompressor.decompress(compressedWithTrailingBytes.span) {
+            result in output.append(span: result)
+        }
+        #expect(consumed == compressed.count)
+        #expect(compressedWithTrailingBytes[consumed...] == trailingBytes[...])
+
+        #expect(try decompressor.decompress(trailingBytes.span) { _ in } == 0)
     }
 }
+
+/// Formats decompressed with `.stop`. Bytes after the actual stream are left unconsumed.
+let trailingDataFormatCases: [FormatRoundTripCase] = [
+    .init(name: "zlib", compress: .default, decompress: .init(trailingDataPolicy: .stop)),
+    .init(
+        name: "gzip",
+        compress: .gzip,
+        decompress: .init(format: .gzip, trailingDataPolicy: .stop)
+    ),
+    .init(
+        name: "raw",
+        compress: Deflate.CompressionConfiguration(format: .raw),
+        decompress: .init(format: .raw, trailingDataPolicy: .stop)
+    ),
+]

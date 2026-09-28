@@ -25,7 +25,7 @@ extension Deflate {
             set { _isFinished = newValue }
         }
 
-        public init(configuration: Configuration) {
+        public init(configuration: Configuration = .default) {
             self.configuration = configuration
             self.stream = .init()
             unsafe stream.value.zalloc = nil
@@ -48,17 +48,17 @@ extension Deflate {
         }
 
         @inlinable
+        @discardableResult
         public mutating func decompress(
             _ chunk: Span<UInt8>,
             handler: (Span<UInt8>) throws(Deflate.Error) -> Void
-        ) throws(Deflate.Error) {
+        ) throws(Deflate.Error) -> Int {
             let streamRef = stream
             unsafe streamRef.value.avail_in = UInt32(chunk.count)
             unsafe streamRef.value.next_in = CZlib_voidPtr_to_BytefPtr(chunk)
 
             var totalDecompressed = decompressedBytesCount
             let maxDecompressedSize = configuration.maxDecompressedSize
-            let allowsConcatenatedStreams = configuration.allowsConcatenatedStreams
             defer { decompressedBytesCount = totalDecompressed }
 
             loop: repeat {
@@ -83,11 +83,25 @@ extension Deflate {
                     if produced > 0 {
                         try handler(mutableSpan.span.extracting(..<produced))
                     }
-                    if unsafe streamRef.value.avail_in > 0 {
-                        // Input continues past end-of-stream.
-                        guard allowsConcatenatedStreams else {
-                            throw .unexpectedTrailingData
-                        }
+
+                    if unsafe streamRef.value.avail_in == 0 {
+                        // Stream is done and there's no trailing data
+                        isFinished = true
+                        return chunk.count - Int(unsafe streamRef.value.avail_in)
+                    }
+
+                    switch self.configuration.trailingDataPolicy {
+                    case .reject:
+                        // We're not expecting another member
+                        isFinished = true
+                        throw .unexpectedTrailingData
+
+                    case .stop:
+                        // There might be trailing bytes we don't care about
+                        isFinished = true
+                        return chunk.count - Int(unsafe streamRef.value.avail_in)
+
+                    case .concatenate:
                         // Another member follows: restart and
                         // keep decompressing. Bytes that don't form a valid
                         // stream will fail with corruptData.
@@ -95,9 +109,6 @@ extension Deflate {
                             throw .internalError
                         }
                         isFinished = false
-                    } else {
-                        isFinished = true
-                        break loop
                     }
                 case CZLIB_Z_BUF_ERROR:
                     break loop
@@ -109,6 +120,8 @@ extension Deflate {
                     throw unsafe Deflate.Error.fromZlib(status, message: czlib_z_zError(status))
                 }
             } while unsafe (streamRef.value.avail_in > 0 || streamRef.value.avail_out == 0)
+
+            return chunk.count - Int(unsafe streamRef.value.avail_in)
         }
     }
 }

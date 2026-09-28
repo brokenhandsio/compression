@@ -58,7 +58,7 @@ var swiftSettings: [SwiftSetting] {
         .strictMemorySafety(),
         .interoperabilityMode(.C),
         .enableExperimentalFeature("SafeInteropWrappers"),
-        .enableExperimentalFeature("SuppressedAssociatedTypes"),
+        .enableExperimentalFeature("SuppressedAssociatedTypesWithDefaults"),
         .enableExperimentalFeature("Lifetimes"),
         // https://github.com/swiftlang/swift/issues/88864
         // .enableExperimentalFeature("Embedded"),

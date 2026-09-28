@@ -52,7 +52,7 @@ public struct DecompressionAsyncSequence<
 
             decompressor.buffer.removeAll(keepingCapacity: true)
             do {
-                try chunk.withSpan { inputSpan throws(Algorithm.StreamingDecompressor.Failure) in
+                _ = try chunk.withSpan { inputSpan throws(Algorithm.StreamingDecompressor.Failure) in
                     try decompressor.value.decompress(inputSpan) { resultSpan in
                         unsafe decompressor.buffer.append(span: resultSpan)
                     }
