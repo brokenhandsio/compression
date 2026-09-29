@@ -11,8 +11,8 @@ extension Deflate {
         /// Input ended in the middle of a deflate stream. The data is incomplete;
         /// retrying with a larger output buffer will not help — more input is needed.
         case truncatedInput
-        /// Input continued past end-of-stream and
-        /// `DecompressionConfiguration.allowsConcatenatedStreams` is `false`.
+        /// Input continued past end-of-stream when
+        /// `DecompressionConfiguration.trailingDataPolicy` did not allow for it.
         case unexpectedTrailingData
         /// Output would exceed `DecompressionConfiguration.maxDecompressedSize`.
         case maxDecompressedSizeExceeded

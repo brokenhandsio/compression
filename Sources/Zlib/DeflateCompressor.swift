@@ -27,7 +27,8 @@ extension Deflate {
             try input.withSpan { span throws(Deflate.Error) in
                 // compressBound assumes zlib framing (6 bytes of overhead);
                 // pad for formats with larger framing.
-                let bound = Int(czlib_z_compressBound(czlib_z_uLong(span.count)))
+                let bound =
+                    Int(czlib_z_compressBound(czlib_z_uLong(span.count)))
                     + configuration.format.extraBoundOverhead
                 return try [UInt8](capacity: bound) { outputSpan throws(Deflate.Error) in
                     try compress(span, into: &outputSpan)

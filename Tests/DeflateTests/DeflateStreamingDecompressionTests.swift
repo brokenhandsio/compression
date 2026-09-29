@@ -1,7 +1,7 @@
 import CompressionDeflate
 import Testing
 
-@Suite("Deflate Streaming Decompression Tests")
+@Suite("Deflate Streaming Decompression")
 struct DeflateStreamingDecompressionTests {
     @Test("Feed compressed data one byte at a time")
     func byteByByte() throws {

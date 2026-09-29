@@ -120,6 +120,19 @@ struct DeflateTests {
         }
     }
 
+    @Test("decompress(_:into:) stops at end of stream when policy is stop")
+    func decompressIntoOutputSpanStopsAtTrailingData() throws {
+        let input = Array(repeating: UInt8(0x41), count: 10_000)
+        let compressed = try compressor.compress(input) + [0xDE, 0xAD, 0xBE, 0xEF]
+        let decompressor = Deflate.Decompressor(configuration: .init(trailingDataPolicy: .stop))
+
+        let decompressed = try [UInt8](capacity: input.count) { output throws(Deflate.Error) in
+            try decompressor.decompress(compressed.span, into: &output)
+        }
+
+        #expect(decompressed == input)
+    }
+
     // MARK: - Array-returning convenience
 
     /// The array convenience must grow past `decompressedSizeHint`. A small hint

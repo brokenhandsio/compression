@@ -8,9 +8,11 @@ extension Deflate {
     /// For decompressing many chunks as part of a single logical stream - where
     /// LZ77 context should carry across boundaries - use ``Deflate.StreamingDecompressor``.
     public struct Decompressor: CompressionCore.Decompressor {
-        public let configuration: DecompressionConfiguration
+        public typealias Configuration = Deflate.DecompressionConfiguration
 
-        public init(configuration: DecompressionConfiguration = .default) {
+        public let configuration: Deflate.DecompressionConfiguration
+
+        public init(configuration: Deflate.DecompressionConfiguration = .default) {
             self.configuration = configuration
         }
 
@@ -19,13 +21,8 @@ extension Deflate {
             var output = [UInt8]()
             try input.withSpan { span throws(Deflate.Error) in
                 output.reserveCapacity(configuration.decompressedSizeHint ?? span.count * 4)
-                let decompressed = try streaming.decompress(span) { produced throws(Deflate.Error) in
+                try streaming.decompress(span) { produced throws(Deflate.Error) in
                     unsafe output.append(span: produced)
-                }
-
-                // There's more data than expected in the input
-                if configuration.trailingDataPolicy == .reject, decompressed != input.count {
-                    throw .unexpectedTrailingData
                 }
             }
             // One-shot: all input was provided, so the stream must have ended.
@@ -98,7 +95,10 @@ extension Deflate {
                         // Input continues past end-of-stream.
                         throw .unexpectedTrailingData
 
-                    case .concatenate, .stop:
+                    case .stop:
+                        return
+
+                    case .concatenate:
                         break
                     }
 

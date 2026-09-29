@@ -36,6 +36,10 @@ public struct DecompressionAsyncSequence<
         var decompressor: DecompressorBox<Algorithm.StreamingDecompressor>
 
         public mutating func next(isolation actor: isolated (any Actor)? = #isolation) async throws(Failure) -> [UInt8]? {
+            if self.decompressor.value.isFinished, self.decompressor.value.configuration.trailingDataPolicy == .stop {
+                return nil
+            }
+
             let chunk: BackingSequence.Element?
             do {
                 chunk = try await backingIterator.next(isolation: actor)

@@ -5,13 +5,7 @@
 /// `StreamingDecompressionAlgorithm`.
 public protocol CompressionAlgorithm: Sendable {
     associatedtype CompressionConfiguration: CompressionParameters
-    associatedtype DecompressionConfiguration: CompressionParameters
-}
-
-/// Algorithm-specific tuning. Each algorithm defines its own configuration types.
-public protocol CompressionParameters: Sendable {
-    /// Sensible defaults for general use.
-    static var `default`: Self { get }
+    associatedtype DecompressionConfiguration: DecompressionParameters
 }
 
 /// An algorithm that supports buffer-to-buffer compression.

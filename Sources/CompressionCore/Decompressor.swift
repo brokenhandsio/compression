@@ -3,7 +3,7 @@
 /// Each call decodes a complete compressed payload. For incremental input,
 /// see `StreamingDecompressor`.
 public protocol Decompressor: Sendable {
-    associatedtype Configuration: CompressionParameters
+    associatedtype Configuration: DecompressionParameters
     associatedtype Failure: Swift.Error
     var configuration: Configuration { get }
 

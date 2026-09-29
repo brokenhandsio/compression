@@ -1,7 +1,7 @@
 import CompressionDeflate
 import Testing
 
-@Suite("Deflate Decompression Tests")
+@Suite("Deflate Decompression")
 struct DeflateDecompressionTests {
     @Test("Concatenated zlib streams decompress when opted in")
     func concatenatedZlibOptIn() throws {

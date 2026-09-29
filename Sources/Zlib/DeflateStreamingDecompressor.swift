@@ -16,7 +16,7 @@ extension Deflate {
 
         @usableFromInline
         var _isFinished: Bool
-        /// True once end-of-stream has been observed with no input left over.
+        /// True once end-of-stream has been observed.
         /// Resets to `false` when a concatenated stream starts a new member.
         public internal(set) var isFinished: Bool {
             @inlinable
@@ -86,19 +86,19 @@ extension Deflate {
 
                     if unsafe streamRef.value.avail_in == 0 {
                         // Stream is done and there's no trailing data
-                        isFinished = true
+                        _isFinished = true
                         return chunk.count - Int(unsafe streamRef.value.avail_in)
                     }
 
                     switch self.configuration.trailingDataPolicy {
                     case .reject:
                         // We're not expecting another member
-                        isFinished = true
+                        _isFinished = true
                         throw .unexpectedTrailingData
 
                     case .stop:
                         // There might be trailing bytes we don't care about
-                        isFinished = true
+                        _isFinished = true
                         return chunk.count - Int(unsafe streamRef.value.avail_in)
 
                     case .concatenate:
@@ -108,7 +108,7 @@ extension Deflate {
                         guard unsafe czlib_z_inflateReset(&streamRef.value) == CZLIB_Z_OK else {
                             throw .internalError
                         }
-                        isFinished = false
+                        _isFinished = false
                     }
                 case CZLIB_Z_BUF_ERROR:
                     break loop

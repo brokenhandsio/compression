@@ -32,23 +32,16 @@ extension Deflate {
         public static let best = Self(level: .best)
     }
 
-    /// Declares what to do when bytes are encountered after the end of stream.
-    public enum TrailingDataPolicy: Sendable {
-        /// Throw `.unexpectedTrailingData`.
-        case reject
-        /// Ignore them and return decompressed count.
-        case stop
-        /// We're expecting another member, keep decompressing.
-        case concatenate
-    }
-
-    public struct DecompressionConfiguration: CompressionParameters {
+    public struct DecompressionConfiguration: DecompressionParameters {
+        /// Deflate format.
         public var format: Format
+        /// Maximum amount of data we allow to be decompressed.
+        /// This protects against decompression bombs.
         public var maxDecompressedSize: Int?
         /// Initial capacity hint for the output buffer. Doesn't constrain the result.
         public var decompressedSizeHint: Int?
-        /// Gzip allows concatenating different streams (members).
-        /// This setting configures what to do when we encounter another member after streaming the first one is done.
+        /// This setting configures what to do when we encounter another member
+        /// after we're done streaming the first one.
         public var trailingDataPolicy: TrailingDataPolicy
 
         public init() {

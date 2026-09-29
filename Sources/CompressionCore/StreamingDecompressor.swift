@@ -2,7 +2,7 @@
 ///
 /// No `finish` step: the underlying format signals end-of-stream itself.
 public protocol StreamingDecompressor: ~Copyable, Sendable {
-    associatedtype Configuration: CompressionParameters
+    associatedtype Configuration: DecompressionParameters
     associatedtype Failure: Swift.Error
 
     var configuration: Configuration { get }
