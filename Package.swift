@@ -14,7 +14,11 @@ let package = Package(
         .library(
             name: "Compression",
             targets: ["CompressionCore", "CompressionDeflate", "CompressionFoundation"]
-        )
+        ),
+        .library(
+            name: "CompressionDeflate",
+            targets: ["CompressionDeflate"]
+        ),
     ],
     targets: [
         .target(
