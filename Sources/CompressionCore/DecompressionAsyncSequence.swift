@@ -14,19 +14,21 @@ public struct DecompressionAsyncSequence<
 
     let backingSequence: BackingSequence
     let configuration: Algorithm.DecompressionConfiguration
+    let chunkSize: Int
 
     public init(
         backingSequence: BackingSequence,
-        configuration: Algorithm.DecompressionConfiguration
+        configuration: Algorithm.DecompressionConfiguration,
+        chunkSize: Int = 64 * 1024
     ) {
         self.backingSequence = backingSequence
         self.configuration = configuration
+        self.chunkSize = chunkSize
     }
 
     public struct AsyncIterator: AsyncIteratorProtocol {
         final class DecompressorBox<D: StreamingDecompressor & ~Copyable> {
             var value: D
-            var buffer: [UInt8] = []
             init(_ value: consuming D) { self.value = value }
         }
 
@@ -34,6 +36,7 @@ public struct DecompressionAsyncSequence<
 
         var backingIterator: BackingSequence.AsyncIterator
         var decompressor: DecompressorBox<Algorithm.StreamingDecompressor>
+        let chunkSize: Int
 
         public mutating func next(isolation actor: isolated (any Actor)? = #isolation) async throws(Failure) -> [UInt8]? {
             if self.decompressor.value.isFinished, self.decompressor.value.configuration.trailingDataPolicy == .stop {
@@ -54,24 +57,24 @@ public struct DecompressionAsyncSequence<
                 return nil
             }
 
-            decompressor.buffer.removeAll(keepingCapacity: true)
             do {
-                _ = try chunk.withSpan { inputSpan throws(Algorithm.StreamingDecompressor.Failure) in
-                    try decompressor.value.decompress(inputSpan) { resultSpan in
-                        unsafe decompressor.buffer.append(span: resultSpan)
+                let result = try [UInt8](capacity: chunkSize) { output throws(Algorithm.StreamingDecompressor.Failure) in
+                    _ = try chunk.withSpan { inputSpan throws(Algorithm.StreamingDecompressor.Failure) in
+                        try decompressor.value.decompress(inputSpan, into: &output)
                     }
                 }
+                return result
             } catch {
                 throw .decompressorError(error)
             }
-            return decompressor.buffer
         }
     }
 
     public func makeAsyncIterator() -> AsyncIterator {
         AsyncIterator(
             backingIterator: backingSequence.makeAsyncIterator(),
-            decompressor: .init(.init(configuration: configuration))
+            decompressor: .init(.init(configuration: configuration)),
+            chunkSize: chunkSize
         )
     }
 }

@@ -15,22 +15,23 @@ struct StreamingRoundTripTests {
         var compressor = Deflate.StreamingCompressor(configuration: .default)
         var compressed = [UInt8]()
 
-        try input.withSpan { span in
-            try compressor.compress(span) { chunk in
-                compressed.append(span: chunk)
-            }
+        try compressor.compress(input.span) { chunk in
+            compressed.append(span: chunk)
         }
         try compressor.finish { chunk in
             compressed.append(span: chunk)
         }
 
         var decompressor = Deflate.StreamingDecompressor(configuration: .default)
-        var output = [UInt8]()
 
-        try compressed.withSpan { span in
-            try decompressor.decompress(span) { chunk in
-                output.append(span: chunk)
+        var output = [UInt8]()
+        var rest = compressed[...]
+        while !decompressor.isFinished {
+            let piece = try [UInt8](capacity: 64 * 1024) { out throws(Deflate.Error) in
+                let consumed = try decompressor.decompress(rest.span, into: &out)
+                rest = rest.dropFirst(consumed)
             }
+            output += piece
         }
 
         #expect(output == input)

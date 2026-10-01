@@ -10,19 +10,55 @@ public protocol StreamingCompressor: ~Copyable, Sendable {
 
     init(configuration: Configuration)
 
-    /// Compress `chunk` and call `handler` with each produced output span.
-    ///
-    /// The handler may be called zero or more times per invocation, depending
-    /// on how much output the compressor produces for the given input.
+    /// Compress `chunk` into the provided `OutputSpan`.
+    @discardableResult
     mutating func compress(
         _ chunk: Span<UInt8>,
+        into output: inout OutputSpan<UInt8>
+    ) throws(Failure) -> Int
+
+    /// Flush any remaining compressed data and finalize the stream.
+    @discardableResult
+    mutating func finish(
+        into output: inout OutputSpan<UInt8>
+    ) throws(Failure) -> Bool
+}
+
+extension StreamingCompressor where Self: ~Copyable {
+    /// Compress `chunk` into the provided `OutputSpan`.
+    public mutating func compress(
+        _ chunk: Span<UInt8>,
         handler: (Span<UInt8>) throws(Failure) -> Void
-    ) throws(Failure)
+    ) throws(Failure) {
+        try withTemporaryAllocation(of: UInt8.self, capacity: 32 * 1024) { output throws(Failure) in
+            var consumed = 0
+            var hasStoppedOnFullOutput: Bool
+            repeat {
+                consumed += try compress(chunk.extracting(consumed...), into: &output)
+                hasStoppedOnFullOutput = output.isFull
+                if !output.isEmpty {
+                    try handler(output.span)
+                    output.removeAll()
+                }
+            } while hasStoppedOnFullOutput || consumed < chunk.count
+        }
+    }
 
     /// Flush any remaining compressed data and finalize the stream.
     ///
     /// The handler may be called zero or more times.
-    mutating func finish(
+    public mutating func finish(
         handler: (Span<UInt8>) throws(Failure) -> Void
-    ) throws(Failure)
+    ) throws(Failure) {
+        try withTemporaryAllocation(of: UInt8.self, capacity: 32 * 1024) { output throws(Failure) in
+            var isFinished = false
+            repeat {
+                isFinished = try finish(into: &output)
+                if !output.isEmpty {
+                    try handler(output.span)
+                    output.removeAll()
+                }
+            } while !isFinished
+        }
+    }
 }

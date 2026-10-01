@@ -12,13 +12,16 @@ public struct CompressionAsyncSequence<
 
     let backingSequence: BackingSequence
     let configuration: Algorithm.CompressionConfiguration
+    let chunkSize: Int
 
     public init(
         backingSequence: BackingSequence,
-        configuration: Algorithm.CompressionConfiguration
+        configuration: Algorithm.CompressionConfiguration,
+        chunkSize: Int = 64 * 1024
     ) {
         self.backingSequence = backingSequence
         self.configuration = configuration
+        self.chunkSize = chunkSize
     }
 
     public struct AsyncIterator: AsyncIteratorProtocol {
@@ -26,13 +29,13 @@ public struct CompressionAsyncSequence<
 
         final class CompressorBox<C: StreamingCompressor & ~Copyable> {
             var value: C
-            var buffer: [UInt8] = []
             init(value: consuming C) { self.value = value }
         }
 
         var backingIterator: BackingSequence.AsyncIterator
         var compressor: CompressorBox<Algorithm.StreamingCompressor>
         var finished = false
+        let chunkSize: Int
 
         public mutating func next(isolation actor: isolated (any Actor)? = #isolation) async throws(Failure) -> [UInt8]? {
             let chunk: BackingSequence.Element?
@@ -44,28 +47,25 @@ public struct CompressionAsyncSequence<
             }
 
             if let chunk {
-                compressor.buffer.removeAll(keepingCapacity: true)
                 do {
-                    try chunk.withSpan { inputSpan throws(Algorithm.StreamingCompressor.Failure) in
-                        try compressor.value.compress(inputSpan) { resultSpan in
-                            unsafe compressor.buffer.append(span: resultSpan)
+                    return try chunk.withSpan { inputSpan throws(Algorithm.StreamingCompressor.Failure) in
+                        try [UInt8](capacity: chunkSize) { output throws(Algorithm.StreamingCompressor.Failure) in
+                            try compressor.value.compress(inputSpan, into: &output)
                         }
                     }
                 } catch {
                     throw .compressorError(error)
                 }
-                return compressor.buffer
+
             } else if !finished {
-                compressor.buffer.removeAll(keepingCapacity: true)
                 defer { finished = true }
                 do {
-                    try compressor.value.finish { resultSpan throws(Algorithm.StreamingCompressor.Failure) in
-                        unsafe compressor.buffer.append(span: resultSpan)
+                    return try [UInt8](capacity: chunkSize) { output throws(Algorithm.StreamingCompressor.Failure) in
+                        try compressor.value.finish(into: &output)
                     }
                 } catch {
                     throw .compressorError(error)
                 }
-                return compressor.buffer
             }
             return nil
         }
@@ -74,7 +74,8 @@ public struct CompressionAsyncSequence<
     public func makeAsyncIterator() -> AsyncIterator {
         AsyncIterator(
             backingIterator: backingSequence.makeAsyncIterator(),
-            compressor: .init(value: .init(configuration: configuration))
+            compressor: .init(value: .init(configuration: configuration)),
+            chunkSize: chunkSize
         )
     }
 }

@@ -9,11 +9,10 @@ struct DeflateStreamingDecompressionTests {
         let compressed = try Deflate.Compressor().compress(input)
 
         var decompressor = Deflate.StreamingDecompressor(configuration: .default)
-        var output = [UInt8]()
 
-        for byte in compressed {
-            try decompressor.decompress([byte].span) { chunk in
-                output.append(span: chunk)
+        let output = try [UInt8](capacity: 64 * 1024) { output in
+            for byte in compressed {
+                try decompressor.decompress([byte].span, into: &output)
             }
         }
 
@@ -260,15 +259,47 @@ struct StreamTerminationTests {
         let compressedWithTrailingBytes = compressed + trailingBytes
 
         var decompressor = Deflate.StreamingDecompressor(configuration: .init(trailingDataPolicy: .stop))
-        var output = [UInt8]()
-
-        let consumed = try decompressor.decompress(compressedWithTrailingBytes.span) {
-            result in output.append(span: result)
+        var consumed: Int = 0
+        _ = try [UInt8](capacity: 64 * 1024) { output in
+            consumed = try decompressor.decompress(compressedWithTrailingBytes.span, into: &output)
         }
         #expect(consumed == compressed.count)
         #expect(compressedWithTrailingBytes[consumed...] == trailingBytes[...])
 
-        #expect(try decompressor.decompress(trailingBytes.span) { _ in } == 0)
+        var empty = OutputSpan<UInt8>()
+        #expect(try decompressor.decompress(trailingBytes.span, into: &empty) == 0)
+    }
+
+    @Test("Small pieces round-trip")
+    func smallPiecesRoundTrip() throws {
+        var rng: UInt64 = 0x1234_5678_9ABC_DEF0
+        var input = [UInt8](repeating: 0, count: 100_000)
+        for i in input.indices {
+            rng = rng &* 6_364_136_223_846_793_005 &+ 1_442_695_040_888_963_407
+            input[i] = UInt8(rng >> 56)
+        }
+
+        let compressed = try Deflate.Compressor().compress(input)
+        var decompressor = Deflate.StreamingDecompressor(configuration: .default)
+
+        var output = [UInt8]()
+        var rest = compressed[...]
+        var round = 0
+        while !decompressor.isFinished {
+            let piece = try [UInt8](capacity: 1024) { out throws(Deflate.Error) in
+                let consumed = try decompressor.decompress(rest.span, into: &out)
+                rest = rest.dropFirst(consumed)
+            }
+            output += piece
+
+            if round == 0 {
+                #expect(decompressor.isFinished == false)
+            }
+
+            round += 1
+        }
+
+        #expect(output == input)
     }
 }
 

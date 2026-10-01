@@ -3,6 +3,8 @@ import CompressionCore
 
 extension Deflate {
     public struct StreamingDecompressor: CompressionCore.StreamingDecompressor, ~Copyable {
+        public typealias Configuration = Deflate.DecompressionConfiguration
+
         public let configuration: Deflate.DecompressionConfiguration
 
         @usableFromInline
@@ -51,23 +53,32 @@ extension Deflate {
         @discardableResult
         public mutating func decompress(
             _ chunk: Span<UInt8>,
-            handler: (Span<UInt8>) throws(Deflate.Error) -> Void
+            into output: inout OutputSpan<UInt8>
         ) throws(Deflate.Error) -> Int {
-            let streamRef = stream
-            unsafe streamRef.value.avail_in = UInt32(chunk.count)
-            unsafe streamRef.value.next_in = CZlib_voidPtr_to_BytefPtr(chunk)
+            unsafe stream.value.avail_in = UInt32(chunk.count)
+            unsafe stream.value.next_in = CZlib_voidPtr_to_BytefPtr(chunk)
 
             var totalDecompressed = decompressedBytesCount
             let maxDecompressedSize = configuration.maxDecompressedSize
             defer { decompressedBytesCount = totalDecompressed }
 
             loop: repeat {
-                var mutableSpan = buffer.mutableSpan
-                unsafe streamRef.value.avail_out = UInt32(mutableSpan.count)
-                unsafe streamRef.value.next_out = CZlib_voidPtr_to_BytefPtr_mut(&mutableSpan)
+                if output.isFull {
+                    return chunk.count - Int(unsafe stream.value.avail_in)
+                }
 
-                let status = unsafe czlib_z_inflate(&streamRef.value, CZLIB_Z_NO_FLUSH)
-                let produced = mutableSpan.count - Int(unsafe streamRef.value.avail_out)
+                let (status, produced) = unsafe try output.withUnsafeMutableBufferPointer { tail, initialisedCount throws(Deflate.Error) in
+                    let free = tail.count - initialisedCount
+
+                    unsafe stream.value.avail_out = UInt32(free)
+                    unsafe stream.value.next_out = CZlib_voidPtr_to_BytefPtr_mut(tail.baseAddress! + initialisedCount, free)
+
+                    let status = unsafe czlib_z_inflate(&stream.value, CZLIB_Z_NO_FLUSH)
+                    let written = unsafe free - Int(stream.value.avail_out)
+
+                    initialisedCount += written
+                    return (status, written)
+                }
 
                 totalDecompressed += produced
                 if let max = maxDecompressedSize, totalDecompressed > max {
@@ -75,19 +86,12 @@ extension Deflate {
                 }
 
                 switch status {
-                case CZLIB_Z_OK:
-                    if produced > 0 {
-                        try handler(mutableSpan.span.extracting(..<produced))
-                    }
+                case CZLIB_Z_OK: break
                 case CZLIB_Z_STREAM_END:
-                    if produced > 0 {
-                        try handler(mutableSpan.span.extracting(..<produced))
-                    }
-
-                    if unsafe streamRef.value.avail_in == 0 {
+                    if unsafe stream.value.avail_in == 0 {
                         // Stream is done and there's no trailing data
                         _isFinished = true
-                        return chunk.count - Int(unsafe streamRef.value.avail_in)
+                        return chunk.count - Int(unsafe stream.value.avail_in)
                     }
 
                     switch self.configuration.trailingDataPolicy {
@@ -99,13 +103,13 @@ extension Deflate {
                     case .stop:
                         // There might be trailing bytes we don't care about
                         _isFinished = true
-                        return chunk.count - Int(unsafe streamRef.value.avail_in)
+                        return chunk.count - Int(unsafe stream.value.avail_in)
 
                     case .concatenate:
                         // Another member follows: restart and
                         // keep decompressing. Bytes that don't form a valid
                         // stream will fail with corruptData.
-                        guard unsafe czlib_z_inflateReset(&streamRef.value) == CZLIB_Z_OK else {
+                        guard unsafe czlib_z_inflateReset(&stream.value) == CZLIB_Z_OK else {
                             throw .internalError
                         }
                         _isFinished = false
@@ -119,9 +123,9 @@ extension Deflate {
                 default:
                     throw unsafe Deflate.Error.fromZlib(status, message: czlib_z_zError(status))
                 }
-            } while unsafe (streamRef.value.avail_in > 0 || streamRef.value.avail_out == 0)
+            } while unsafe (stream.value.avail_in > 0 || stream.value.avail_out == 0)
 
-            return chunk.count - Int(unsafe streamRef.value.avail_in)
+            return chunk.count - Int(unsafe stream.value.avail_in)
         }
     }
 }

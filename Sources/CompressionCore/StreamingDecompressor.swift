@@ -24,6 +24,28 @@ public protocol StreamingDecompressor: ~Copyable, Sendable {
     @discardableResult
     mutating func decompress(
         _ chunk: Span<UInt8>,
-        handler: (Span<UInt8>) throws(Failure) -> Void
+        into output: inout OutputSpan<UInt8>
     ) throws(Failure) -> Int
+}
+
+extension StreamingDecompressor where Self: ~Copyable {
+    @discardableResult
+    public mutating func decompress(
+        _ chunk: Span<UInt8>,
+        handler: (Span<UInt8>) throws(Failure) -> Void
+    ) throws(Failure) -> Int {
+        try withTemporaryAllocation(of: UInt8.self, capacity: 32 * 1024) { output throws(Failure) in
+            var consumed = 0
+            var full: Bool
+            repeat {
+                consumed += try decompress(chunk.extracting(consumed...), into: &output)
+                full = output.freeCapacity == 0
+                if !output.isEmpty {
+                    try handler(output.span)
+                    output.removeAll()
+                }
+            } while full || (consumed < chunk.count && !isFinished)
+            return consumed
+        }
+    }
 }

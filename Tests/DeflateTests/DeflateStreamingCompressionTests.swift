@@ -25,10 +25,8 @@ struct DeflateStreamingCompressorTests {
         var offset = 0
         while offset < input.count {
             let end = min(input.count, offset + chunkSize)
-            try input[offset..<end].withSpan { span in
-                try compressor.compress(span) { chunk in
-                    compressed.append(span: chunk)
-                }
+            try compressor.compress(input[offset..<end].span) { chunk in
+                compressed.append(span: chunk)
             }
             offset = end
         }
@@ -45,10 +43,8 @@ struct DeflateStreamingCompressorTests {
         var compressor = Deflate.StreamingCompressor(configuration: testCase.compress)
         var compressed = [UInt8]()
 
-        try input.withSpan { span in
-            try compressor.compress(span) { chunk in
-                compressed.append(span: chunk)
-            }
+        try compressor.compress(input.span) { chunk in
+            compressed.append(span: chunk)
         }
         try compressor.finish { chunk in
             compressed.append(span: chunk)
@@ -100,8 +96,8 @@ struct DeflateStreamingCompressorTests {
 
         var decompressor = Deflate.StreamingDecompressor(configuration: .default)
         var recovered = [UInt8]()
-        try output.withSpan { span in
-            try decompressor.decompress(span) { chunk in recovered.append(span: chunk) }
+        try decompressor.decompress(output.span) { chunk in
+            recovered.append(span: chunk)
         }
         #expect(recovered == firstHalf)
 
@@ -129,6 +125,37 @@ struct DeflateStreamingCompressorTests {
         try compressor.finish { chunk in output.append(span: chunk) }
 
         #expect(try Deflate.Decompressor().decompress(output) == payload)
+    }
+
+    @Test("compress(into:) a small buffer")
+    func compressIntoASmallBuffer() throws {
+        let input = (0..<1_000_000).map { _ in UInt8.random(in: 0...255) }
+
+        let compressor = Deflate.StreamingCompressor()
+        var output = [UInt8]()
+        var consumed = 0
+        var isFirstRound = true
+
+        while consumed < input.count {
+            output += try [UInt8](capacity: 64) { outputSpan in
+                consumed += try compressor.compress(input.span.extracting(consumed...), into: &outputSpan)
+            }
+
+            if isFirstRound {
+                #expect(consumed < input.count)
+                isFirstRound = false
+            }
+        }
+
+        var isFinished = false
+        while !isFinished {
+            output += try [UInt8](capacity: 64) { outputSpan in
+                isFinished = try compressor.finish(into: &outputSpan)
+            }
+        }
+
+        let decompressed = try Deflate.Decompressor().decompress(output)
+        #expect(decompressed == input)
     }
 }
 

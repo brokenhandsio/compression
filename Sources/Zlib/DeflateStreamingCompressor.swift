@@ -8,10 +8,7 @@ extension Deflate {
         @usableFromInline
         let stream: ZStreamBox
 
-        @usableFromInline
-        var output: [UInt8]
-
-        public init(configuration: Configuration) {
+        public init(configuration: Configuration = .default) {
             self.configuration = configuration
             self.stream = .init()
             unsafe stream.value.zalloc = nil
@@ -27,10 +24,6 @@ extension Deflate {
                 configuration.strategy.rawValue,
             )
             precondition(rt == CZLIB_Z_OK, "deflateInit2 failed: \(rt)")
-
-            output = unsafe .init(unsafeUninitializedCapacity: 32 * 1024) { _, count in
-                count = 32 * 1024
-            }
         }
 
         deinit {
@@ -38,77 +31,118 @@ extension Deflate {
         }
 
         @inlinable
-        public mutating func compress(
+        public func compress(
             _ chunk: Span<UInt8>,
-            handler: (Span<UInt8>) throws(Deflate.Error) -> Void
-        ) throws(Deflate.Error) {
-            let streamRef = stream
-            unsafe streamRef.value.avail_in = UInt32(chunk.count)
-            unsafe streamRef.value.next_in = CZlib_voidPtr_to_BytefPtr(chunk)
-            try drainOutput(flag: CZLIB_Z_NO_FLUSH, handler: handler)
-        }
+            into output: inout OutputSpan<UInt8>
+        ) throws(Deflate.Error) -> Int {
+            guard !output.isFull else { return 0 }
 
-        public mutating func flush(
-            handler: (Span<UInt8>) throws(Deflate.Error) -> Void
-        ) throws(Deflate.Error) {
-            let streamRef = stream
-            unsafe streamRef.value.avail_in = 0
-            unsafe streamRef.value.next_in = nil
-            try drainOutput(flag: CZLIB_Z_SYNC_FLUSH, handler: handler)
-        }
+            unsafe stream.value.avail_in = UInt32(chunk.count)
+            unsafe stream.value.next_in = CZlib_voidPtr_to_BytefPtr(chunk)
 
-        public mutating func finish(
-            handler: (Span<UInt8>) throws(Deflate.Error) -> Void
-        ) throws(Deflate.Error) {
-            let streamRef = stream
-            unsafe streamRef.value.avail_in = 0
-            var status: Int32 = CZLIB_Z_OK
-
-            while status != CZLIB_Z_STREAM_END {
-                var mutableSpan = output.mutableSpan
-                unsafe streamRef.value.avail_out = UInt32(mutableSpan.count)
-                unsafe streamRef.value.next_out = CZlib_voidPtr_to_BytefPtr_mut(&mutableSpan)
-                status = unsafe CZlib.czlib_z_deflate(&streamRef.value, CZLIB_Z_FINISH)
-                let produced = mutableSpan.count - Int(unsafe streamRef.value.avail_out)
-
-                switch status {
-                case CZLIB_Z_OK, CZLIB_Z_STREAM_END:
-                    if produced > 0 {
-                        try handler(output.span.extracting(..<produced))
-                    }
-                case CZLIB_Z_MEM_ERROR:
-                    throw Deflate.Error.insufficientMemory
-                default:
-                    throw unsafe Deflate.Error.fromZlib(status, message: czlib_z_zError(status))
-                }
-            }
-        }
-
-        @inlinable
-        mutating func drainOutput(
-            flag: Int32,
-            handler: (Span<UInt8>) throws(Deflate.Error) -> Void
-        ) throws(Deflate.Error) {
-            let streamRef = stream
-            repeat {
-                var mutableSpan = output.mutableSpan
-                unsafe streamRef.value.avail_out = UInt32(mutableSpan.count)
-                unsafe streamRef.value.next_out = CZlib_voidPtr_to_BytefPtr_mut(&mutableSpan)
-
-                let status = unsafe CZlib.czlib_z_deflate(&streamRef.value, flag)
-                let produced = mutableSpan.count - Int(unsafe streamRef.value.avail_out)
+            loop: repeat {
+                let status = try deflateStep(flag: CZLIB_Z_NO_FLUSH, into: &output)
 
                 switch status {
                 case CZLIB_Z_OK, CZLIB_Z_BUF_ERROR:
-                    if produced > 0 {
-                        try handler(output.span.extracting(..<produced))
+                    if output.freeCapacity == 0 {
+                        break loop
                     }
-                case CZLIB_Z_MEM_ERROR:
-                    throw .insufficientMemory
                 default:
                     throw unsafe .fromZlib(status, message: czlib_z_zError(status))
                 }
-            } while unsafe (streamRef.value.avail_in > 0 || streamRef.value.avail_out == 0)
+            } while unsafe (stream.value.avail_in > 0 || stream.value.avail_out == 0)
+
+            return unsafe chunk.count - Int(stream.value.avail_in)
+        }
+
+        /// Emit all pending compressed data, aligned to a byte boundary, without ending the stream.
+        ///
+        /// Returns `true` once the flush is complete. On `false` the output ran out of
+        /// space: call again with more room. Keep more than 6 bytes free to avoid
+        /// emitting repeated flush markers.
+        @inlinable
+        @discardableResult
+        public func flush(
+            into output: inout OutputSpan<UInt8>
+        ) throws(Deflate.Error) -> Bool {
+            guard output.freeCapacity > 0 else { return false }
+
+            let streamRef = stream
+            unsafe streamRef.value.avail_in = 0
+            unsafe streamRef.value.next_in = nil
+            try deflateStep(flag: CZLIB_Z_SYNC_FLUSH, into: &output)
+
+            // zlib signals a complete flush by leaving output space unused.
+            return unsafe streamRef.value.avail_out != 0
+        }
+
+        @inlinable
+        public func finish(
+            into output: inout OutputSpan<UInt8>
+        ) throws(Deflate.Error) -> Bool {
+            let streamRef = stream
+            unsafe streamRef.value.avail_in = 0
+
+            guard !output.isFull else {
+                return false
+            }
+
+            let status = try deflateStep(flag: CZLIB_Z_FINISH, into: &output)
+
+            return status == CZLIB_Z_STREAM_END
+        }
+
+        /// Run a single `deflate` call into the free space of `output`.
+        ///
+        /// `output` must have free capacity.
+        @inlinable
+        @discardableResult
+        func deflateStep(
+            flag: Int32,
+            into output: inout OutputSpan<UInt8>
+        ) throws(Deflate.Error) -> Int32 {
+            let free = output.freeCapacity
+            precondition(free > 0, "Output buffer is full")
+
+            let status = unsafe output.withUnsafeMutableBufferPointer { tail, initialisedCount in
+                unsafe stream.value.avail_out = UInt32(free)
+                unsafe stream.value.next_out = CZlib_voidPtr_to_BytefPtr_mut(tail.baseAddress! + initialisedCount, free)
+
+                let status = unsafe CZlib.czlib_z_deflate(&stream.value, flag)
+                initialisedCount += free - Int(unsafe stream.value.avail_out)
+                return status
+            }
+
+            switch status {
+            case CZLIB_Z_OK, CZLIB_Z_BUF_ERROR, CZLIB_Z_STREAM_END:
+                return status
+            case CZLIB_Z_MEM_ERROR:
+                throw .insufficientMemory
+            default:
+                throw unsafe .fromZlib(status, message: czlib_z_zError(status))
+            }
+        }
+    }
+}
+
+extension Deflate.StreamingCompressor {
+    /// Emit all pending compressed data, aligned to a byte boundary, without ending the stream.
+    ///
+    /// The handler may be called zero or more times.
+    @inlinable
+    public mutating func flush(
+        handler: (Span<UInt8>) throws(Deflate.Error) -> Void
+    ) throws(Deflate.Error) {
+        try withTemporaryAllocation(of: UInt8.self, capacity: 32 * 1024) { output throws(Deflate.Error) in
+            var isFlushed: Bool
+            repeat {
+                isFlushed = try self.flush(into: &output)
+                if !output.isEmpty {
+                    try handler(output.span)
+                    output.removeAll()
+                }
+            } while !isFlushed
         }
     }
 }

@@ -13,6 +13,7 @@ struct DeflateDecompressionTests {
         let output = try Deflate.Decompressor(
             configuration: .init(trailingDataPolicy: .concatenate)
         ).decompress(compressed)
+        print(String(decoding: output, as: UTF8.self))
         #expect(output == first + second)
     }
 
