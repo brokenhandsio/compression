@@ -15,6 +15,9 @@ public protocol StreamingDecompressor: ~Copyable, Sendable {
     /// fed and treat `false` as an error.
     var isFinished: Bool { get }
 
+    /// Size of the scratch buffer used by `decompress(_:handler:)`.
+    static var outputBufferSize: Int { get }
+
     init(configuration: Configuration)
 
     /// Decompress `chunk` and call `handler` with each produced output span.
@@ -29,22 +32,24 @@ public protocol StreamingDecompressor: ~Copyable, Sendable {
 }
 
 extension StreamingDecompressor where Self: ~Copyable {
+    public static var outputBufferSize: Int { 32 * 1024 }
+
     @discardableResult
     public mutating func decompress(
         _ chunk: Span<UInt8>,
         handler: (Span<UInt8>) throws(Failure) -> Void
     ) throws(Failure) -> Int {
-        try withTemporaryAllocation(of: UInt8.self, capacity: 32 * 1024) { output throws(Failure) in
+        try withTemporaryAllocation(of: UInt8.self, capacity: Self.outputBufferSize) { output throws(Failure) in
             var consumed = 0
-            var full: Bool
+            var hasStoppedOnFullOutput: Bool
             repeat {
                 consumed += try decompress(chunk.extracting(consumed...), into: &output)
-                full = output.freeCapacity == 0
+                hasStoppedOnFullOutput = output.freeCapacity == 0
                 if !output.isEmpty {
                     try handler(output.span)
                     output.removeAll()
                 }
-            } while full || (consumed < chunk.count && !isFinished)
+            } while (hasStoppedOnFullOutput || consumed < chunk.count) && !isFinished
             return consumed
         }
     }

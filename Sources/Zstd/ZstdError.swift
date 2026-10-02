@@ -26,6 +26,9 @@ extension Zstd {
         case unknownContentSize
         /// The decompressed byte count is not the same as the expected one.
         case contentSizeMismatch(expected: Int, actual: Int)
+        /// Input continued past end-of-stream when
+        /// `DecompressionConfiguration.trailingDataPolicy` did not allow for it.
+        case unexpectedTrailingData
         /// Any other zstd failure. `code` is the `ZSTD_ErrorCode`; `message` is
         /// what `ZSTD_getErrorString` reports for it.
         case zstd(code: ZSTD_ErrorCode, message: String)
@@ -72,6 +75,7 @@ extension Zstd {
             case .unknownContentSize: "Zstd.Error: frame does not declare its content size"
             case .contentSizeMismatch(let expected, let actual):
                 "Zstd.Error: expected content size (\(expected)) does not match actual (\(actual))"
+            case .unexpectedTrailingData: "Zstd.Error: unexpected trailing data after end of stream"
             case .zstd(let code, let message): "Zstd.Error(\(code.rawValue)): \(message)"
             }
         }

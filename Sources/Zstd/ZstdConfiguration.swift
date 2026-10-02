@@ -56,19 +56,24 @@ public struct ZstdCompressionConfiguration: CompressionParameters {
     public var level: Level
 }
 
-public struct ZstdDecompressionConfiguration: CompressionParameters {
+public struct ZstdDecompressionConfiguration: DecompressionParameters {
     public static let `default`: ZstdDecompressionConfiguration = .init(windowLogMax: 0)
 
     public init() {
         self.windowLogMax = 0
         self.maxDecompressedSize = nil
         self.expectedContentSize = nil
+        self.trailingDataPolicy = .concatenate
     }
 
-    package init(windowLogMax: Int32, maxDecompressedSize: Int? = nil, expectedContentSize: Int? = nil) {
+    package init(
+        windowLogMax: Int32, maxDecompressedSize: Int? = nil, expectedContentSize: Int? = nil,
+        trailingDataPolicy: TrailingDataPolicy = .concatenate
+    ) {
         self.windowLogMax = windowLogMax
         self.maxDecompressedSize = maxDecompressedSize
         self.expectedContentSize = expectedContentSize
+        self.trailingDataPolicy = trailingDataPolicy
     }
 
     /// Select a size limit (in power of 2) beyond which the streaming API will refuse to allocate
@@ -79,10 +84,12 @@ public struct ZstdDecompressionConfiguration: CompressionParameters {
     ///
     /// Special: value 0 means "use default maximum windowLog".
     public var windowLogMax: Int32
-
     public var maxDecompressedSize: Int?
-
     /// This is only used on the StreamingDecompressor. The OneShotCompressor will take an
     /// `expectedDecompressedSize` parameter in `decompress` as the compressor can be reused.
+    /// This won't have any effect if `trailingDataPolicy` is set to `concatenate`.
     public var expectedContentSize: Int?
+    /// This setting configures what to do when we encounter another member
+    /// after we're done streaming the first one.
+    public var trailingDataPolicy: TrailingDataPolicy
 }

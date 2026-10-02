@@ -101,7 +101,7 @@ CZstd_getFrameContentSize(const uint8_t *__counted_by(srcSize) src __noescape, s
 /// `ZSTD_e_flush` or `ZSTD_e_end` is the normal way to drain internal buffers.
 static inline CZstd_StreamResult
 CZstd_compressStream2(ZSTD_CCtx *cctx,
-                      uint8_t *__counted_by(dstCapacity) dst __noescape, size_t dstCapacity,
+                      uint8_t *dst, size_t dstCapacity,
                       const uint8_t *__counted_by(srcSize) src __noescape, size_t srcSize,
                       ZSTD_EndDirective endOp) {
   ZSTD_outBuffer out = { (void *)dst, dstCapacity, 0 };
@@ -117,7 +117,7 @@ CZstd_compressStream2(ZSTD_CCtx *cctx,
 /// value is a hint at the number of bytes the next call would like to read.
 static inline CZstd_StreamResult
 CZstd_decompressStream(ZSTD_DCtx *dctx,
-                       uint8_t *__counted_by(dstCapacity) dst __noescape, size_t dstCapacity,
+                       uint8_t *dst, size_t dstCapacity,
                        const uint8_t *__counted_by(srcSize) src __noescape, size_t srcSize) {
   ZSTD_outBuffer out = { (void *)dst, dstCapacity, 0 };
   ZSTD_inBuffer in = { (const void *)src, srcSize, 0 };
