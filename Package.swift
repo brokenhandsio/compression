@@ -19,6 +19,10 @@ let package = Package(
             name: "CompressionDeflate",
             targets: ["CompressionDeflate"]
         ),
+        .library(
+            name: "CompressionZstd",
+            targets: ["Zstandard"]
+        ),
     ],
     targets: [
         .target(
@@ -53,6 +57,30 @@ let package = Package(
             dependencies: [
                 .target(name: "CompressionDeflate")
             ],
+        ),
+        .testTarget(
+            name: "ZstdTests",
+            dependencies: [
+                .target(name: "Zstandard"),
+                .target(name: "CZstd"),
+            ],
+        ),
+        .target(
+            name: "CZstd",
+            path: "Sources/CZstd",
+            sources: ["lib"],
+            publicHeadersPath: "include",
+            cSettings: [
+                .headerSearchPath("lib"),
+                .define("ENABLE_C_BOUNDS_SAFETY"),
+            ],
+            swiftSettings: swiftSettings,
+        ),
+        .target(
+            name: "Zstandard",
+            dependencies: ["CZstd", "CompressionCore"],
+            path: "Sources/Zstd",
+            swiftSettings: swiftSettings
         ),
     ]
 )

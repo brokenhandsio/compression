@@ -134,7 +134,7 @@ extension Deflate.StreamingCompressor {
     public mutating func flush(
         handler: (Span<UInt8>) throws(Deflate.Error) -> Void
     ) throws(Deflate.Error) {
-        try withTemporaryAllocation(of: UInt8.self, capacity: 32 * 1024) { output throws(Deflate.Error) in
+        try withTemporaryAllocation(of: UInt8.self, capacity: Self.outputBufferSize) { output throws(Deflate.Error) in
             var isFlushed: Bool
             repeat {
                 isFlushed = try self.flush(into: &output)
