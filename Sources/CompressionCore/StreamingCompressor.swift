@@ -6,6 +6,9 @@ public protocol StreamingCompressor: ~Copyable, Sendable {
     associatedtype Configuration: CompressionParameters
     associatedtype Failure: Swift.Error = Never
 
+    /// Size of the scratch buffer used by `compress(_:handler:)` and `finish(handler:)`.
+    static var outputBufferSize: Int { get }
+
     var configuration: Configuration { get }
 
     init(configuration: Configuration)
@@ -25,14 +28,16 @@ public protocol StreamingCompressor: ~Copyable, Sendable {
 }
 
 extension StreamingCompressor where Self: ~Copyable {
+    public static var outputBufferSize: Int { 32 * 1024 }
+
     /// Compress `chunk` into the provided `OutputSpan`.
     public mutating func compress(
         _ chunk: Span<UInt8>,
         handler: (Span<UInt8>) throws(Failure) -> Void
     ) throws(Failure) {
-        try withTemporaryAllocation(of: UInt8.self, capacity: 32 * 1024) { output throws(Failure) in
-            var consumed = 0
-            var hasStoppedOnFullOutput: Bool
+        var consumed = 0
+        var hasStoppedOnFullOutput: Bool = true
+        try withTemporaryAllocation(of: UInt8.self, capacity: Self.outputBufferSize) { output throws(Failure) in
             repeat {
                 consumed += try compress(chunk.extracting(consumed...), into: &output)
                 hasStoppedOnFullOutput = output.isFull
@@ -50,8 +55,8 @@ extension StreamingCompressor where Self: ~Copyable {
     public mutating func finish(
         handler: (Span<UInt8>) throws(Failure) -> Void
     ) throws(Failure) {
-        try withTemporaryAllocation(of: UInt8.self, capacity: 32 * 1024) { output throws(Failure) in
-            var isFinished = false
+        var isFinished = false
+        try withTemporaryAllocation(of: UInt8.self, capacity: Self.outputBufferSize) { output throws(Failure) in
             repeat {
                 isFinished = try finish(into: &output)
                 if !output.isEmpty {

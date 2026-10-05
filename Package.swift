@@ -58,14 +58,19 @@ let package = Package(
 )
 
 var swiftSettings: [SwiftSetting] {
-    [
+    var settings: [SwiftSetting] = [
         .strictMemorySafety(),
         .interoperabilityMode(.C),
         .enableExperimentalFeature("SafeInteropWrappers"),
-        .enableExperimentalFeature("SuppressedAssociatedTypesWithDefaults"),
         .enableExperimentalFeature("Lifetimes"),
         // https://github.com/swiftlang/swift/issues/88864
         // .enableExperimentalFeature("Embedded"),
         .treatWarning("EmbeddedRestrictions", as: .warning),
     ]
+    #if compiler(>=6.4)
+    settings.append(.enableExperimentalFeature("SuppressedAssociatedTypesWithDefaults"))
+    #else
+    settings.append(.enableExperimentalFeature("SuppressedAssociatedTypes"))
+    #endif
+    return settings
 }
