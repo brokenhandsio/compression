@@ -12,12 +12,11 @@ struct ZstdStreamingDecompressionTests {
 
         var decompressed = [UInt8]()
         var decompressor = Zstd.StreamingDecompressor()
-        #expect(throws: Never.self) {
-            try decompressor.decompress(compressed.span) { output in
-                decompressed.append(span: output)
-            }
+        try decompressor.decompress(compressed.span) { output in
+            decompressed.append(span: output)
         }
 
+        #expect(input == decompressed)
         #expect(decompressor.isFinished == true)
     }
 

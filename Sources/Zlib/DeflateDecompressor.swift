@@ -21,7 +21,7 @@ extension Deflate {
             var output = [UInt8]()
             try input.withSpan { span throws(Deflate.Error) in
                 output.reserveCapacity(configuration.decompressedSizeHint ?? span.count * 4)
-                try streaming.decompress(span) { unsafe output.append(span: $0) }
+                try streaming.decompress(span) { output.append(span: $0) }
             }
             // One-shot: all input was provided, so the stream must have ended.
             guard streaming.isFinished else { throw .truncatedInput }

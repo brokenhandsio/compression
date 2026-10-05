@@ -3,71 +3,105 @@ public import CompressionCore
 
 extension Zstd: StreamingCompressionAlgorithm {
     public struct StreamingCompressor: CompressionCore.StreamingCompressor, ~Copyable {
+        public static var outputBufferSize: Int { ZSTD_CStreamOutSize() }
+
         public let configuration: ZstdCompressionConfiguration
 
         @usableFromInline
         let stream: ZstdStreamBox
 
         @usableFromInline
-        var buffer: [UInt8]
+        var isFinished: Bool
 
         public init(configuration: ZstdCompressionConfiguration = .default) {
             self.configuration = configuration
             self.stream = .compression()
-            self.buffer = .init(repeating: 0, count: ZSTD_CStreamOutSize())
 
             unsafe preconditionCheck(ZSTD_CCtx_setParameter(stream.value, ZSTD_c_strategy, configuration.strategy.rawValue))
             unsafe preconditionCheck(ZSTD_CCtx_setParameter(stream.value, ZSTD_c_compressionLevel, configuration.level.rawValue))
+
+            self.isFinished = false
         }
 
         deinit {
             unsafe ZSTD_freeCCtx(stream.value)
         }
 
-        public mutating func compress(_ chunk: Span<UInt8>, handler: (Span<UInt8>) throws(Zstd.Error) -> Void) throws(Zstd.Error) {
-            var out = buffer.mutableSpan
+        @inlinable
+        public func compress(_ chunk: Span<UInt8>, into output: inout OutputSpan<UInt8>) throws(Zstd.Error) -> Int {
             var consumed = 0
 
             while consumed < chunk.count {
-                let result = unsafe CZstd_compressStream2(stream.value, &out, chunk.extracting(consumed...), ZSTD_e_continue)
+                let result = unsafe output.withUnsafeMutableBufferPointer { tail, initialisedCount in
+                    let free = tail.count - initialisedCount
+                    let result = unsafe CZstd_compressStream2(
+                        stream.value,
+                        tail.baseAddress!.advanced(by: initialisedCount),
+                        free,
+                        chunk.extracting(consumed...),
+                        ZSTD_e_continue
+                    )
+
+                    initialisedCount += result.produced
+                    return result
+                }
                 try Zstd.check(result.status)
-
                 consumed += result.consumed
-
-                if result.produced > 0 {
-                    try handler(out.span.extracting(..<result.produced))
-                }
             }
+
+            return consumed
         }
 
-        public mutating func flush(handler: (Span<UInt8>) throws(Zstd.Error) -> Void) throws(Zstd.Error) {
-            var out = buffer.mutableSpan
-            let empty = Span<UInt8>()
-            var status = 1
-
-            while status != 0 {
-                let result = unsafe CZstd_compressStream2(stream.value, &out, empty, ZSTD_e_flush)
-                status = try Zstd.check(result.status)
-
-                if result.produced > 0 {
-                    try handler(out.span.extracting(..<result.produced))
-                }
+        @inlinable
+        public mutating func finish(into output: inout OutputSpan<UInt8>) throws(Zstd.Error) -> Bool {
+            guard !output.isFull else {
+                return false
             }
+
+            let result = unsafe output.withUnsafeMutableBufferPointer { tail, initialisedCount in
+                let free = tail.count - initialisedCount
+
+                let result = unsafe CZstd_compressStream2(
+                    stream.value,
+                    tail.baseAddress!.advanced(by: initialisedCount),
+                    free,
+                    Span<UInt8>(),
+                    ZSTD_e_end
+                )
+                initialisedCount += result.produced
+                return result
+            }
+
+            if try Zstd.check(result.status) == 0 {
+                isFinished = true
+            }
+
+            return isFinished
         }
 
-        public mutating func finish(handler: (Span<UInt8>) throws(Zstd.Error) -> Void) throws(Zstd.Error) {
-            var out = buffer.mutableSpan
-            let empty = Span<UInt8>()
+        @inlinable
+        public mutating func flush(into output: inout OutputSpan<UInt8>) throws(Zstd.Error) -> Int {
             var status = 1
+            var consumed = 0
 
+            let free = output.freeCapacity
             while status != 0 {
-                let result = unsafe CZstd_compressStream2(stream.value, &out, empty, ZSTD_e_end)
-                status = try Zstd.check(result.status)
-
-                if result.produced > 0 {
-                    try handler(out.span.extracting(..<result.produced))
+                let result = unsafe output.withUnsafeMutableBufferPointer { tail, initialisedCount in
+                    let result = unsafe CZstd_compressStream2(
+                        stream.value,
+                        tail.baseAddress!.advanced(by: initialisedCount),
+                        free,
+                        Span<UInt8>(),
+                        ZSTD_e_flush
+                    )
+                    initialisedCount += result.consumed
+                    return result
                 }
+                status = try Zstd.check(result.status)
+                consumed += result.consumed
             }
+
+            return consumed
         }
     }
 }
