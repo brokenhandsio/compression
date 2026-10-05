@@ -34,11 +34,13 @@ extension Zstd: StreamingCompressionAlgorithm {
             while consumed < chunk.count {
                 guard !output.isFull else { return consumed }
 
-                let result = unsafe output.withUnsafeMutableBufferPointer { tail, initialisedCount in
+                let result = unsafe output.withUnsafeMutableBufferPointer { tail, initialisedCount -> CZstd_StreamResult? in
                     let free = tail.count - initialisedCount
+                    guard free > 0, let base = tail.baseAddress else { return nil }
+
                     let result = unsafe CZstd_compressStream2(
                         stream.value,
-                        tail.baseAddress!.advanced(by: initialisedCount),
+                        base.advanced(by: initialisedCount),
                         free,
                         chunk.extracting(consumed...),
                         ZSTD_e_continue
@@ -47,6 +49,9 @@ extension Zstd: StreamingCompressionAlgorithm {
                     initialisedCount += result.produced
                     return result
                 }
+                // Nowhere to write: the caller has to drain before we can go on.
+                guard let result else { return consumed }
+
                 try Zstd.check(result.status)
                 consumed += result.consumed
             }
@@ -59,12 +64,13 @@ extension Zstd: StreamingCompressionAlgorithm {
             guard !isFinished else { return true }
             guard !output.isFull else { return false }
 
-            let result = unsafe output.withUnsafeMutableBufferPointer { tail, initialisedCount in
+            let result = unsafe output.withUnsafeMutableBufferPointer { tail, initialisedCount -> CZstd_StreamResult? in
                 let free = tail.count - initialisedCount
+                guard free > 0, let base = tail.baseAddress else { return nil }
 
                 let result = unsafe CZstd_compressStream2(
                     stream.value,
-                    tail.baseAddress!.advanced(by: initialisedCount),
+                    base.advanced(by: initialisedCount),
                     free,
                     Span<UInt8>(),
                     ZSTD_e_end
@@ -72,6 +78,8 @@ extension Zstd: StreamingCompressionAlgorithm {
                 initialisedCount += result.produced
                 return result
             }
+            // Nowhere to write: not finished, call again with room.
+            guard let result else { return false }
 
             if try Zstd.check(result.status) == 0 {
                 isFinished = true
@@ -85,10 +93,13 @@ extension Zstd: StreamingCompressionAlgorithm {
             guard !output.isFull else { return false }
 
             let free = output.freeCapacity
-            let result = unsafe output.withUnsafeMutableBufferPointer { tail, initialisedCount in
+            let result = unsafe output.withUnsafeMutableBufferPointer { tail, initialisedCount -> CZstd_StreamResult? in
+
+                guard free > 0, let base = tail.baseAddress else { return nil }
+
                 let result = unsafe CZstd_compressStream2(
                     stream.value,
-                    tail.baseAddress!.advanced(by: initialisedCount),
+                    base.advanced(by: initialisedCount),
                     free,
                     Span<UInt8>(),
                     ZSTD_e_flush
@@ -96,6 +107,8 @@ extension Zstd: StreamingCompressionAlgorithm {
                 initialisedCount += result.produced
                 return result
             }
+            // Nowhere to write: not flushed, call again with room.
+            guard let result else { return false }
 
             // A flush is complete when the output was not completely filled.
             // Otherwise there would likely be something else to write

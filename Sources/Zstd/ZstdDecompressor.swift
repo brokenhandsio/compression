@@ -28,7 +28,7 @@ extension Zstd: OneShotDecompressionAlgorithm {
                 // use the streaming decompressor
                 var decompressor = Zstd.StreamingDecompressor(configuration: configuration)
                 var output = [UInt8]()
-                try decompressor.decompress(inputSpan) { chunk in unsafe output.append(span: chunk) }
+                try decompressor.decompress(inputSpan) { chunk in output.append(span: chunk) }
                 guard decompressor.isFinished else { throw .truncatedInput }
                 return output
             }

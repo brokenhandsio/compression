@@ -43,12 +43,13 @@ extension Zstd: StreamingDecompressionAlgorithm {
                 // we're not done even if we were before
                 self.isFinished = false
 
-                let result = unsafe output.withUnsafeMutableBufferPointer { tail, initialisedCount in
+                let result = unsafe output.withUnsafeMutableBufferPointer { tail, initialisedCount -> CZstd_StreamResult? in
                     let free = tail.count - initialisedCount
+                    guard free > 0, let base = tail.baseAddress else { return nil }
 
                     let result = unsafe CZstd_decompressStream(
                         self.stream.value,
-                        tail.baseAddress!.advanced(by: initialisedCount),
+                        base.advanced(by: initialisedCount),
                         free,
                         chunk.extracting(consumed...)
                     )
@@ -56,6 +57,9 @@ extension Zstd: StreamingDecompressionAlgorithm {
                     initialisedCount += result.produced
                     return result
                 }
+                // Nowhere to write: return so the caller can drain the buffer
+                guard let result else { return consumed }
+
                 try Zstd.check(result.status)
                 consumed += result.consumed
 

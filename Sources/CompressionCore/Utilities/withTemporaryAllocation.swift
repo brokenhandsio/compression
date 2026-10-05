@@ -1,4 +1,4 @@
-#if swift(<6.4)
+#if compiler(<6.4)
 @usableFromInline
 @discardableResult
 package func withTemporaryAllocation<T: ~Copyable, R: ~Copyable, E: Error>(
