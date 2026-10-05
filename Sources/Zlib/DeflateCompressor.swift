@@ -76,8 +76,8 @@ extension Deflate {
 
             unsafe try output.withUnsafeMutableBufferPointer { tail, initializedCount throws(Deflate.Error) in
                 let free = tail.count - initializedCount
-                if free == 0 { throw .outputBufferTooSmall }
-                let dest = unsafe tail.baseAddress! + initializedCount
+                guard free > 0, let base = tail.baseAddress else { throw .outputBufferTooSmall }
+                let dest = unsafe base + initializedCount
 
                 unsafe stream.avail_out = UInt32(free)
                 unsafe stream.next_out = CZlib_voidPtr_to_BytefPtr_mut(dest, free)

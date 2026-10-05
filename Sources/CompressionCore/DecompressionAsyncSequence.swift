@@ -38,9 +38,36 @@ public struct DecompressionAsyncSequence<
         var decompressor: DecompressorBox<Algorithm.StreamingDecompressor>
         let chunkSize: Int
 
+        var consumed = 0
+        var chunk: BackingSequence.Element?
+
+        mutating func consume(chunk: BackingSequence.Element) throws(Failure) -> [UInt8] {
+            do {
+                return try chunk.withSpan { input throws(Algorithm.StreamingDecompressor.Failure) in
+                    try [UInt8](capacity: chunkSize) { output throws(Algorithm.StreamingDecompressor.Failure) in
+                        consumed += try decompressor.value.decompress(input.extracting(consumed...), into: &output)
+
+                        if input.count != consumed {
+                            self.chunk = chunk
+                        } else {
+                            self.chunk = nil
+                            self.consumed = 0
+                        }
+                    }
+                }
+            } catch {
+                throw .decompressorError(error)
+            }
+        }
+
         public mutating func next(isolation actor: isolated (any Actor)? = #isolation) async throws(Failure) -> [UInt8]? {
             if self.decompressor.value.isFinished, self.decompressor.value.configuration.trailingDataPolicy == .stop {
                 return nil
+            }
+
+            if let chunk = self.chunk {
+                // We consumed part of the last chunk but not all of it, keep consuming that one
+                return try consume(chunk: chunk)
             }
 
             let chunk: BackingSequence.Element?
@@ -57,16 +84,7 @@ public struct DecompressionAsyncSequence<
                 return nil
             }
 
-            do {
-                let result = try [UInt8](capacity: chunkSize) { output throws(Algorithm.StreamingDecompressor.Failure) in
-                    _ = try chunk.withSpan { inputSpan throws(Algorithm.StreamingDecompressor.Failure) in
-                        try decompressor.value.decompress(inputSpan, into: &output)
-                    }
-                }
-                return result
-            } catch {
-                throw .decompressorError(error)
-            }
+            return try consume(chunk: chunk)
         }
     }
 

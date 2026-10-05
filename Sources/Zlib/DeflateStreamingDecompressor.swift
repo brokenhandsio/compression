@@ -67,11 +67,14 @@ extension Deflate {
                     return chunk.count - Int(unsafe stream.value.avail_in)
                 }
 
-                let (status, produced) = unsafe try output.withUnsafeMutableBufferPointer { tail, initialisedCount throws(Deflate.Error) in
+                let (status, produced) = unsafe try output.withUnsafeMutableBufferPointer {
+                    tail, initialisedCount throws(Deflate.Error) -> (Int32, Int) in
                     let free = tail.count - initialisedCount
 
+                    guard free > 0, let base = tail.baseAddress else { return (CZLIB_Z_BUF_ERROR, 0) }
+
                     unsafe stream.value.avail_out = UInt32(free)
-                    unsafe stream.value.next_out = CZlib_voidPtr_to_BytefPtr_mut(tail.baseAddress! + initialisedCount, free)
+                    unsafe stream.value.next_out = CZlib_voidPtr_to_BytefPtr_mut(base + initialisedCount, free)
 
                     let status = unsafe czlib_z_inflate(&stream.value, CZLIB_Z_NO_FLUSH)
                     let written = unsafe free - Int(stream.value.avail_out)

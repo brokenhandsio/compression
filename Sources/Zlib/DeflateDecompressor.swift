@@ -21,7 +21,7 @@ extension Deflate {
             var output = [UInt8]()
             try input.withSpan { span throws(Deflate.Error) in
                 output.reserveCapacity(configuration.decompressedSizeHint ?? span.count * 4)
-                try streaming.decompress(span) { unsafe output.append(span: $0) }
+                try streaming.decompress(span) { output.append(span: $0) }
             }
             // One-shot: all input was provided, so the stream must have ended.
             guard streaming.isFinished else { throw .truncatedInput }
@@ -58,8 +58,8 @@ extension Deflate {
             decode: while true {
                 unsafe try output.withUnsafeMutableBufferPointer { tail, initializedCount throws(Deflate.Error) in
                     let free = tail.count - initializedCount
-                    if free == 0 { throw .outputBufferTooSmall }
-                    let dest = unsafe tail.baseAddress! + initializedCount
+                    guard free > 0, let base = tail.baseAddress else { throw .outputBufferTooSmall }
+                    let dest = unsafe base + initializedCount
 
                     unsafe stream.avail_out = UInt32(free)
                     unsafe stream.next_out = CZlib_voidPtr_to_BytefPtr_mut(dest, free)
