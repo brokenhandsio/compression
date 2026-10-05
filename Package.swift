@@ -29,7 +29,8 @@ let package = Package(
             name: "CompressionFoundation",
             dependencies: [
                 .target(name: "CompressionCore")
-            ]
+            ],
+            swiftSettings: swiftSettings
         ),
         .target(
             name: "CompressionDeflate",
@@ -46,13 +47,13 @@ let package = Package(
                 .headerSearchPath("src"),
                 .define("ENABLE_C_BOUNDS_SAFETY"),
             ],
-            swiftSettings: swiftSettings,
         ),
         .testTarget(
             name: "DeflateTests",
             dependencies: [
                 .target(name: "CompressionDeflate")
             ],
+            swiftSettings: swiftSettings
         ),
     ]
 )
