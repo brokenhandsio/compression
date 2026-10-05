@@ -35,34 +35,49 @@ public struct CompressionAsyncSequence<
         var backingIterator: BackingSequence.AsyncIterator
         var compressor: CompressorBox<Algorithm.StreamingCompressor>
         var finished = false
+        var consumed = 0
         let chunkSize: Int
+        var chunk: BackingSequence.Element?
+
+        mutating func consume(chunk: BackingSequence.Element) throws(Failure) -> [UInt8] {
+            do {
+                return try chunk.withSpan { input throws(Algorithm.StreamingCompressor.Failure) in
+                    try [UInt8](capacity: chunkSize) { output throws(Algorithm.StreamingCompressor.Failure) in
+                        consumed += try compressor.value.compress(input.extracting(consumed...), into: &output)
+
+                        if input.count != consumed {
+                            self.chunk = chunk
+                        } else {
+                            self.chunk = nil
+                            self.consumed = 0
+                        }
+                    }
+                }
+            } catch {
+                throw .compressorError(error)
+            }
+        }
 
         public mutating func next(isolation actor: isolated (any Actor)? = #isolation) async throws(Failure) -> [UInt8]? {
-            let chunk: BackingSequence.Element?
+            if let chunk = self.chunk {
+                // We consumed part of the last chunk but not all of it, keep consuming that one
+                return try consume(chunk: chunk)
+            }
 
             do {
-                chunk = try await backingIterator.next(isolation: actor)
+                self.chunk = try await backingIterator.next(isolation: actor)
             } catch {
                 throw .backingStreamError(error)
             }
 
             if let chunk {
-                do {
-                    return try chunk.withSpan { inputSpan throws(Algorithm.StreamingCompressor.Failure) in
-                        try [UInt8](capacity: chunkSize) { output throws(Algorithm.StreamingCompressor.Failure) in
-                            try compressor.value.compress(inputSpan, into: &output)
-                        }
-                    }
-                } catch {
-                    throw .compressorError(error)
-                }
-
+                return try consume(chunk: chunk)
             } else if !finished {
-                defer { finished = true }
                 do {
-                    return try [UInt8](capacity: chunkSize) { output throws(Algorithm.StreamingCompressor.Failure) in
-                        try compressor.value.finish(into: &output)
+                    let result = try [UInt8](capacity: chunkSize) { output throws(Algorithm.StreamingCompressor.Failure) in
+                        finished = try compressor.value.finish(into: &output)
                     }
+                    return result
                 } catch {
                     throw .compressorError(error)
                 }

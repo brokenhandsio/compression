@@ -21,10 +21,8 @@ struct ZstdStreamingCompressionTests {
 
         for start in stride(from: 0, to: compressed.count, by: 1_024) {
             let end = min(start + 1_024, compressed.count)
-            try compressed[start..<end].withSpan { span in
-                try decompressor.decompress(span) { output in
-                    decompressed.append(span: output)
-                }
+            try decompressor.decompress(compressed[start..<end].span) { output in
+                decompressed.append(span: output)
             }
         }
 
@@ -51,6 +49,68 @@ struct ZstdStreamingCompressionTests {
         let decompressed = try decompressor.decompress(compressed)
 
         #expect(decompressed == input)
+    }
+
+    @Test("Compressing incompressible data")
+    func compressingIncompressibleData() throws {
+        let data = Array(repeating: UInt8.random(in: 0..<255), count: 1 << 20)
+        var compressor = Zstd.StreamingCompressor()
+        var compressed = [UInt8]()
+
+        for start in stride(from: 0, to: data.count, by: 1_024) {
+            let end = min(start + 1_024, data.count)
+            try compressor.compress(data[start..<end].span) { chunk in
+                compressed.append(span: chunk)
+            }
+        }
+
+        try compressor.finish { chunk in
+            compressed.append(span: chunk)
+        }
+
+        let decompressor = Zstd.Decompressor()
+        let decompressed = try decompressor.decompress(compressed)
+
+        #expect(decompressed == data)
+    }
+
+    @Test("Flush produces a recoverable boundary")
+    func flushBoundary() throws {
+        let firstHalf = Array("The quick brown fox jumps over the lazy dog.".utf8)
+        let secondHalf = Array(" Pack my box with five dozen liquor jugs.".utf8)
+
+        var compressor = Zstd.StreamingCompressor(configuration: .default)
+        var output = [UInt8]()
+        try compressor.compress(firstHalf.span) { chunk in output.append(span: chunk) }
+        try compressor.flush { chunk in output.append(span: chunk) }
+
+        var decompressor = Zstd.StreamingDecompressor(configuration: .default)
+        var recovered = [UInt8]()
+        try decompressor.decompress(output.span) { chunk in
+            recovered.append(span: chunk)
+        }
+        #expect(recovered == firstHalf)
+
+        // The compressor must still be usable after flush
+        try compressor.compress(secondHalf.span) { chunk in output.append(span: chunk) }
+        try compressor.finish { chunk in output.append(span: chunk) }
+
+        let full = try Zstd.Decompressor().decompress(output)
+        #expect(full == firstHalf + secondHalf)
+    }
+
+    @Test("Flush is safe with no input and is idempotent")
+    func flushIdempotent() throws {
+        var compressor = Zstd.StreamingCompressor(configuration: .default)
+        var output = [UInt8]()
+        try compressor.flush { chunk in output.append(span: chunk) }
+        try compressor.flush { chunk in output.append(span: chunk) }
+
+        let payload = Array("done".utf8)
+        try compressor.compress(payload.span) { chunk in output.append(span: chunk) }
+        try compressor.finish { chunk in output.append(span: chunk) }
+
+        #expect(try Zstd.Decompressor().decompress(output) == payload)
     }
 }
 
