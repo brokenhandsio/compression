@@ -105,9 +105,11 @@ extension Deflate {
             let free = output.freeCapacity
             precondition(free > 0, "Output buffer is full")
 
-            let status = unsafe output.withUnsafeMutableBufferPointer { tail, initialisedCount in
+            let status = unsafe output.withUnsafeMutableBufferPointer { tail, initialisedCount -> Int32 in
+                guard let base = tail.baseAddress else { return CZLIB_Z_BUF_ERROR }
+
                 unsafe stream.value.avail_out = UInt32(free)
-                unsafe stream.value.next_out = CZlib_voidPtr_to_BytefPtr_mut(tail.baseAddress! + initialisedCount, free)
+                unsafe stream.value.next_out = CZlib_voidPtr_to_BytefPtr_mut(base + initialisedCount, free)
 
                 let status = unsafe CZlib.czlib_z_deflate(&stream.value, flag)
                 initialisedCount += free - Int(unsafe stream.value.avail_out)

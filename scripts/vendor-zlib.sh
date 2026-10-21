@@ -73,7 +73,7 @@ mkdir -p "${CZLIB_DIR}/src"
 # 3. Define file lists
 # ---------------------------------------------------------------------------
 # Streaming + one-shot compress/uncompress. No gzip FILE* I/O (gz*.c)
-# and no callback-inflate (infback.c) — add back if you need them.
+# and no callback-inflate (infback.c)
 ZLIB_C_FILES=(
     adler32.c
     compress.c
