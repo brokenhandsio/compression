@@ -92,12 +92,10 @@ extension Zstd: StreamingDecompressionAlgorithm {
                     case .reject:
                         // If we don't allow for exstra trailing data, throw
                         isFinished = true
-                        again = false
                         throw .unexpectedTrailingData
 
                     case .stop:
                         // If we want to stop after reaching a frame's end, return
-                        again = false
                         isFinished = true
 
                         if let expectedContentSize = configuration.expectedContentSize {

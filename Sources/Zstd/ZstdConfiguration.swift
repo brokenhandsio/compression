@@ -2,7 +2,9 @@ import CZstd
 import CompressionCore
 
 public struct ZstdCompressionConfiguration: CompressionParameters {
+    /// How hard zstd looks for repeated data.
     @nonexhaustive public enum Strategy: Int32, Sendable {
+        case auto = 0
         case fast = 1
         case dfast = 2
         case greedy = 3
@@ -40,10 +42,10 @@ public struct ZstdCompressionConfiguration: CompressionParameters {
         public static let max = best
     }
 
-    public static let `default`: ZstdCompressionConfiguration = .init(strategy: .greedy, level: .default)
+    public static let `default`: ZstdCompressionConfiguration = .init(strategy: .auto, level: .default)
 
     public init() {
-        self.strategy = .greedy
+        self.strategy = .auto
         self.level = .default
     }
 

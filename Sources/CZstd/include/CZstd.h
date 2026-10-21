@@ -126,4 +126,20 @@ CZstd_decompressStream(ZSTD_DCtx *dctx,
   return result;
 }
 
+static inline CZstd_StreamResult
+CZstd_compressStream2NoInput(ZSTD_CCtx *cctx,
+                             uint8_t *__counted_by(dstCapacity) dst __noescape, size_t dstCapacity,
+                             ZSTD_EndDirective endOp) {
+  ZSTD_outBuffer out = { (void *)dst, dstCapacity, 0 };
+  ZSTD_inBuffer in = { NULL, 0, 0 };
+  size_t const status = ZSTD_compressStream2(cctx, &out, &in, endOp);
+  CZstd_StreamResult result = { status, in.pos, out.pos };
+  return result;
+}
+
+static inline size_t
+CZstd_findFrameCompressedSize(const uint8_t *__counted_by(srcSize) __noescape src, size_t srcSize) {
+  return ZSTD_findFrameCompressedSize(src, srcSize);
+}
+
 #endif /* CZSTD_UMBRELLA_H */

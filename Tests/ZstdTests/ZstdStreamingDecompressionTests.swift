@@ -489,6 +489,17 @@ struct ZstdStreamingDecompressionTests {
             try mismatching.decompress(compressed.span) { _ in }
         }
     }
+
+    @Test("Joined frames decompress in one shot")
+    func oneShotConcatenatedFrames() throws {
+        let first = [UInt8](repeating: 0x61, count: 8)
+        let second = [UInt8](repeating: 0x62, count: 1_000)
+        let compressor = Zstd.Compressor()
+        let compressed = try compressor.compress(first) + (try compressor.compress(second))
+
+        let decompressor = Zstd.Decompressor()
+        #expect(try decompressor.decompress(compressed) == first + second)
+    }
 }
 
 /// Compress through the streaming compressor, which pledges no content size.

@@ -68,11 +68,10 @@ extension Zstd: StreamingCompressionAlgorithm {
                 let free = tail.count - initialisedCount
                 guard free > 0, let base = tail.baseAddress else { return nil }
 
-                let result = unsafe CZstd_compressStream2(
+                let result = unsafe CZstd_compressStream2NoInput(
                     stream.value,
                     base.advanced(by: initialisedCount),
                     free,
-                    Span<UInt8>(),
                     ZSTD_e_end
                 )
                 initialisedCount += result.produced
@@ -97,11 +96,10 @@ extension Zstd: StreamingCompressionAlgorithm {
 
                 guard free > 0, let base = tail.baseAddress else { return nil }
 
-                let result = unsafe CZstd_compressStream2(
+                let result = unsafe CZstd_compressStream2NoInput(
                     stream.value,
                     base.advanced(by: initialisedCount),
                     free,
-                    Span<UInt8>(),
                     ZSTD_e_flush
                 )
                 initialisedCount += result.produced

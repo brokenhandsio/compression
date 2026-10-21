@@ -11,8 +11,7 @@ extension Zstd: OneShotDecompressionAlgorithm {
 
         public func decompress(_ input: some CompressibleInput) throws(Zstd.Error) -> [UInt8] {
             try input.withSpan { inputSpan throws(Zstd.Error) in
-                let declared = CZstd_getFrameContentSize(inputSpan)
-                guard declared != ZSTD_CONTENTSIZE_ERROR else { throw .corruptData }
+                let declared = try getDecompressedSize(from: inputSpan)
 
                 if declared != ZSTD_CONTENTSIZE_UNKNOWN, let capacity = Int(exactly: declared) {
                     if let max = configuration.maxDecompressedSize, capacity > Int(max) {
@@ -32,6 +31,30 @@ extension Zstd: OneShotDecompressionAlgorithm {
                 guard decompressor.isFinished else { throw .truncatedInput }
                 return output
             }
+        }
+
+        func getDecompressedSize(from span: Span<UInt8>) throws(Zstd.Error) -> UInt64 {
+            guard !span.isEmpty else { throw .corruptData }
+            var totalSize: UInt64 = 0
+            var i = 0
+            // if there's joint frames we need to traverse them all and sum their contentSize
+            while i < span.count {
+                let remaining = span.extracting(i...)
+                let frameLength = try Zstd.check(CZstd_findFrameCompressedSize(remaining))
+                guard frameLength > 0, frameLength <= remaining.count else { throw .corruptData }
+
+                let contentSize = CZstd_getFrameContentSize(remaining)
+                guard contentSize != ZSTD_CONTENTSIZE_ERROR else { throw .corruptData }
+                guard contentSize != ZSTD_CONTENTSIZE_UNKNOWN else { return contentSize }
+
+                let (sum, overflow) = totalSize.addingReportingOverflow(contentSize)
+                guard !overflow else { throw .corruptData }
+
+                totalSize = sum
+                i += frameLength
+            }
+
+            return totalSize
         }
 
         public func decompress(_ input: some CompressionCore.CompressibleInput, into output: inout OutputSpan<UInt8>) throws(Zstd.Error) {
