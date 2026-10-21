@@ -21,7 +21,7 @@ extension Zstd: StreamingDecompressionAlgorithm {
             isFinished = false
 
             self.stream = .decompression()
-            unsafe Zstd.preconditionCheck(ZSTD_DCtx_setParameter(stream.value, ZSTD_d_windowLogMax, configuration.windowLogMax))
+            unsafe Zstd.preconditionCheck(ZSTD_DCtx_setParameter(stream.value, ZSTD_d_windowLogMax, configuration.effectiveWindowLogMax))
         }
 
         deinit {

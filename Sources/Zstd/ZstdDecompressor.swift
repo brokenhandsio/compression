@@ -67,7 +67,7 @@ extension Zstd: OneShotDecompressionAlgorithm {
             guard let dctx = unsafe ZSTD_createDCtx() else { throw .insufficientMemory }
             defer { _ = unsafe ZSTD_freeDCtx(dctx) }
 
-            unsafe try Zstd.check(ZSTD_DCtx_setParameter(dctx, ZSTD_d_windowLogMax, Int32(configuration.windowLogMax)))
+            unsafe try Zstd.check(ZSTD_DCtx_setParameter(dctx, ZSTD_d_windowLogMax, configuration.effectiveWindowLogMax))
 
             try unsafe output.withUnsafeMutableBufferPointer { outputPtr, initCount throws(Zstd.Error) in
                 var dst = unsafe MutableSpan(_unsafeElements: outputPtr.extracting(initCount...))

@@ -69,7 +69,9 @@ public struct ZstdDecompressionConfiguration: DecompressionParameters {
     }
 
     package init(
-        windowLogMax: Int32, maxDecompressedSize: Int? = nil, expectedContentSize: Int? = nil,
+        windowLogMax: Int,
+        maxDecompressedSize: Int? = nil,
+        expectedContentSize: Int? = nil,
         trailingDataPolicy: TrailingDataPolicy = .concatenate
     ) {
         self.windowLogMax = windowLogMax
@@ -85,7 +87,11 @@ public struct ZstdDecompressionConfiguration: DecompressionParameters {
     /// By default, a decompression context accepts window sizes <= (1 << ZSTD_WINDOWLOG_LIMIT_DEFAULT).
     ///
     /// Special: value 0 means "use default maximum windowLog".
-    public var windowLogMax: Int32
+    public var windowLogMax: Int
+    var effectiveWindowLogMax: Int32 {
+        windowLogMax == 0 ? 0 : Int32(Swift.max(10, Swift.min(31, windowLogMax)))
+    }
+
     public var maxDecompressedSize: Int?
     /// This is only used on the StreamingDecompressor. The OneShotCompressor will take an
     /// `expectedDecompressedSize` parameter in `decompress` as the compressor can be reused.

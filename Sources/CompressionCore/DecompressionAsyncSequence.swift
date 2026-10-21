@@ -21,6 +21,7 @@ public struct DecompressionAsyncSequence<
         configuration: Algorithm.DecompressionConfiguration,
         chunkSize: Int = 64 * 1024
     ) {
+        precondition(chunkSize > 0, "chunkSize must be positive")
         self.backingSequence = backingSequence
         self.configuration = configuration
         self.chunkSize = chunkSize
