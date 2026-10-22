@@ -29,6 +29,8 @@ extension Zstd: StreamingCompressionAlgorithm {
 
         @inlinable
         public mutating func compress(_ chunk: Span<UInt8>, into output: inout OutputSpan<UInt8>) throws(Zstd.Error) -> Int {
+            precondition(!self.isFinished, "Stream is finished, call reset if you want to start over")
+
             var consumed = 0
 
             while consumed < chunk.count {
@@ -88,12 +90,18 @@ extension Zstd: StreamingCompressionAlgorithm {
         }
 
         @inlinable
+        public mutating func reset() {
+            unsafe ZSTD_CCtx_reset(self.stream.value, ZSTD_reset_session_only)
+            self.isFinished = false
+        }
+
+        @inlinable
         public mutating func flush(into output: inout OutputSpan<UInt8>) throws(Zstd.Error) -> Bool {
+            precondition(!isFinished, "Stream is finished, call reset if you want to start over")
             guard !output.isFull else { return false }
 
             let free = output.freeCapacity
             let result = unsafe output.withUnsafeMutableBufferPointer { tail, initialisedCount -> CZstd_StreamResult? in
-
                 guard free > 0, let base = tail.baseAddress else { return nil }
 
                 let result = unsafe CZstd_compressStream2NoInput(

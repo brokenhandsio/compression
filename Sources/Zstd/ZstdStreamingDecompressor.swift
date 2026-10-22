@@ -116,5 +116,12 @@ extension Zstd: StreamingDecompressionAlgorithm {
 
             return consumed
         }
+
+        @inlinable
+        public mutating func reset() {
+            unsafe ZSTD_DCtx_reset(self.stream.value, ZSTD_reset_session_only)
+            self.isFinished = false
+            self.decompressedBytesCount = 0
+        }
     }
 }

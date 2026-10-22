@@ -8,9 +8,13 @@ extension Deflate {
         @usableFromInline
         let stream: ZStreamBox
 
+        @usableFromInline
+        var isFinished: Bool
+
         public init(configuration: Configuration = .default) {
             self.configuration = configuration
             self.stream = .init()
+            self.isFinished = false
             unsafe stream.value.zalloc = nil
             unsafe stream.value.zfree = nil
             unsafe stream.value.opaque = nil
@@ -35,6 +39,8 @@ extension Deflate {
             _ chunk: Span<UInt8>,
             into output: inout OutputSpan<UInt8>
         ) throws(Deflate.Error) -> Int {
+            precondition(!self.isFinished, "Stream is finished, call reset if you want to start over")
+
             guard !output.isFull else { return 0 }
 
             unsafe stream.value.avail_in = UInt32(chunk.count)
@@ -68,29 +74,31 @@ extension Deflate {
         ) throws(Deflate.Error) -> Bool {
             guard output.freeCapacity > 0 else { return false }
 
-            let streamRef = stream
-            unsafe streamRef.value.avail_in = 0
-            unsafe streamRef.value.next_in = nil
+            unsafe stream.value.avail_in = 0
+            unsafe stream.value.next_in = nil
             try deflateStep(flag: CZLIB_Z_SYNC_FLUSH, into: &output)
 
             // zlib signals a complete flush by leaving output space unused.
-            return unsafe streamRef.value.avail_out != 0
+            return unsafe stream.value.avail_out != 0
         }
 
         @inlinable
         public func finish(
             into output: inout OutputSpan<UInt8>
         ) throws(Deflate.Error) -> Bool {
-            let streamRef = stream
-            unsafe streamRef.value.avail_in = 0
-
-            guard !output.isFull else {
-                return false
-            }
+            guard !self.isFinished else { return true }
+            unsafe stream.value.avail_in = 0
+            guard !output.isFull else { return false }
 
             let status = try deflateStep(flag: CZLIB_Z_FINISH, into: &output)
 
             return status == CZLIB_Z_STREAM_END
+        }
+
+        @inlinable
+        public mutating func reset() {
+            unsafe czlib_z_deflateReset(&self.stream.value)
+            self.isFinished = false
         }
 
         /// Run a single `deflate` call into the free space of `output`.
