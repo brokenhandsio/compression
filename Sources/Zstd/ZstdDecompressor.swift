@@ -14,7 +14,7 @@ extension Zstd: OneShotDecompressionAlgorithm {
                 let declared = try getDecompressedSize(from: inputSpan)
 
                 if declared != ZSTD_CONTENTSIZE_UNKNOWN, let capacity = Int(exactly: declared) {
-                    if let max = configuration.maxDecompressedSize, capacity > Int(max) {
+                    if let max = configuration.maxDecompressedSize, capacity > max {
                         throw .maxDecompressedSizeExceeded
                     }
 

@@ -1,6 +1,5 @@
 #if compiler(<6.4)
 @usableFromInline
-@discardableResult
 package func withTemporaryAllocation<T: ~Copyable, R: ~Copyable, E: Error>(
     of type: T.Type,
     capacity: Int,

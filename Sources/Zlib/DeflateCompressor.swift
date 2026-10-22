@@ -23,13 +23,35 @@ extension Deflate {
             self.configuration = configuration
         }
 
+        public func upperBound(forInputSize inputSize: Int) -> Int {
+            precondition(inputSize >= 0, "inputSize must not be negative, got \(inputSize)")
+            // Port of deflateBound
+
+            let fixedLength = inputSize + (inputSize >> 3) + (inputSize >> 8) + (inputSize >> 9) + 4
+            let storeLength = inputSize + (inputSize >> 5) + (inputSize >> 7) + (inputSize >> 11) + 7
+
+            let level = configuration.level == .default ? .custom(6) : configuration.level
+
+            let wrapLength =
+                switch configuration.format {
+                case .raw: 0
+                case .zlib: 6
+                case .gzip: 18
+                }
+
+            let hashBits = Int(configuration.memory.rawValue) + 7
+            // w_bits is always 15
+            if hashBits != 8 + 7 {
+                return (15 <= hashBits && level != .none ? fixedLength : storeLength) + wrapLength
+            }
+
+            return inputSize + (inputSize >> 12) + (inputSize >> 14) + (inputSize >> 25) + 13 - 6
+                + wrapLength
+        }
+
         public func compress(_ input: some CompressibleInput) throws(Deflate.Error) -> [UInt8] {
             try input.withSpan { span throws(Deflate.Error) in
-                // compressBound assumes zlib framing (6 bytes of overhead);
-                // pad for formats with larger framing.
-                let bound =
-                    Int(czlib_z_compressBound(czlib_z_uLong(span.count)))
-                    + configuration.format.extraBoundOverhead
+                let bound = upperBound(forInputSize: span.count)
                 return try [UInt8](capacity: bound) { outputSpan throws(Deflate.Error) in
                     try compress(span, into: &outputSpan)
                 }

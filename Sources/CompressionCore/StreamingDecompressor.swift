@@ -50,7 +50,6 @@ extension StreamingDecompressor where Self: ~Copyable {
                     output.removeAll()
                 }
             } while (hasStoppedOnFullOutput || consumed < chunk.count) && !isFinished
-            return consumed
         }
         return consumed
     }
