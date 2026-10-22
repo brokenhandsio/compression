@@ -5,7 +5,7 @@ extension Zstd: StreamingCompressionAlgorithm {
     public struct StreamingCompressor: CompressionCore.StreamingCompressor, ~Copyable {
         public static var outputBufferSize: Int { ZSTD_CStreamOutSize() }
 
-        public let configuration: ZstdCompressionConfiguration
+        public let configuration: CompressionConfiguration
 
         @usableFromInline
         let stream: ZstdStreamBox
@@ -13,12 +13,12 @@ extension Zstd: StreamingCompressionAlgorithm {
         @usableFromInline
         var isFinished: Bool
 
-        public init(configuration: ZstdCompressionConfiguration = .default) {
+        public init(configuration: CompressionConfiguration = .default) {
             self.configuration = configuration
             self.stream = .compression()
 
-            unsafe preconditionCheck(ZSTD_CCtx_setParameter(stream.value, ZSTD_c_strategy, configuration.strategy.rawValue))
-            unsafe preconditionCheck(ZSTD_CCtx_setParameter(stream.value, ZSTD_c_compressionLevel, configuration.level.rawValue))
+            unsafe preconditionCheck(ZSTD_CCtx_setParameter(stream.value, ZSTD_c_strategy, Int32(configuration.strategy.rawValue)))
+            unsafe preconditionCheck(ZSTD_CCtx_setParameter(stream.value, ZSTD_c_compressionLevel, Int32(configuration.level.rawValue)))
 
             self.isFinished = false
         }
@@ -119,24 +119,6 @@ extension Zstd: StreamingCompressionAlgorithm {
             // A flush is complete when the output was not completely filled.
             // Otherwise there would likely be something else to write
             return try Zstd.check(result.status) == 0 && result.produced < free
-        }
-    }
-}
-
-extension Zstd.StreamingCompressor {
-    @inlinable
-    public mutating func flush(
-        handler: (Span<UInt8>) throws(Zstd.Error) -> Void
-    ) throws(Zstd.Error) {
-        try withTemporaryAllocation(of: UInt8.self, capacity: Self.outputBufferSize) { output throws(Zstd.Error) in
-            var isFlushed: Bool
-            repeat {
-                isFlushed = try self.flush(into: &output)
-                if !output.isEmpty {
-                    try handler(output.span)
-                    output.removeAll()
-                }
-            } while !isFlushed
         }
     }
 }

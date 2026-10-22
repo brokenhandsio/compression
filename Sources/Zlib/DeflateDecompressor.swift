@@ -20,7 +20,7 @@ extension Deflate {
             var streaming = StreamingDecompressor(configuration: configuration)
             var output = [UInt8]()
             try input.withSpan { span throws(Deflate.Error) in
-                output.reserveCapacity(configuration.decompressedSizeHint ?? min(span.count * 4, 1 << 20))
+                output.reserveCapacity(min(span.count * 4, 1 << 20))
                 try streaming.decompress(span) { output.append(span: $0) }
             }
             // One-shot: all input was provided, so the stream must have ended.

@@ -1,7 +1,7 @@
 import CZstd
 import Testing
 
-@testable import Zstandard
+@testable import CompressionZstd
 
 #if canImport(FoundationEssentials)
 import FoundationEssentials

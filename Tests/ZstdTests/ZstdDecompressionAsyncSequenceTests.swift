@@ -1,6 +1,6 @@
 import CompressionCore
 import Testing
-import Zstandard
+import CompressionZstd
 
 @Suite("Zstd Decompression Async Sequence")
 struct ZstdDecompressionAsyncSequenceTests {
@@ -87,7 +87,7 @@ struct ZstdDecompressionAsyncSequenceTests {
         let compressed = try Zstd.Compressor().compress(data)
         let trailingData = [UInt8](repeating: 0x00, count: 10_000)
 
-        let configuration = Zstd.DecompressionConfiguration(windowLogMax: 0, trailingDataPolicy: .stop)
+        let configuration = Zstd.DecompressionConfiguration(trailingDataPolicy: .stop)
         let stream = makeStream(for: compressed + trailingData, chunkSize: 1024)
             .decompressed(using: Zstd.self, configuration: configuration)
         var output = [UInt8]()
@@ -104,7 +104,7 @@ struct ZstdDecompressionAsyncSequenceTests {
         // One chunk, so the frame end and the garbage reach the decompressor together.
         let chunk = compressed + [UInt8](repeating: 0xDE, count: 8)
 
-        let configuration = Zstd.DecompressionConfiguration(windowLogMax: 0, trailingDataPolicy: .reject)
+        let configuration = Zstd.DecompressionConfiguration(trailingDataPolicy: .reject)
         let stream = makeStream(chunks: [chunk])
             .decompressed(using: Zstd.self, configuration: configuration)
         await #expect {

@@ -1,6 +1,6 @@
 import CZstd
 
-@testable import Zstandard
+@testable import CompressionZstd
 
 /// The content size recorded in a frame header, or `nil` when absent/invalid.
 func frameContentSize(of compressed: [UInt8]) -> Int? {
@@ -16,7 +16,7 @@ func frameContentSize(of compressed: [UInt8]) -> Int? {
 /// Little-endian spelling of the zstd frame magic number, `0xFD2FB528`.
 let zstdMagicNumber: [UInt8] = [0x28, 0xB5, 0x2F, 0xFD]
 
-let allStrategies: [ZstdCompressionConfiguration.Strategy] = [
+let allStrategies: [Zstd.CompressionConfiguration.Strategy] = [
     .fast, .dfast, .greedy, .lazy, .lazy2, .btlazy2, .btopt, .btultra, .btultra2,
 ]
 

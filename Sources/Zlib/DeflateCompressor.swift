@@ -1,15 +1,6 @@
 import CZlib
 @_exported import CompressionCore
 
-/// RFC 1950 zlib, RFC 1951 raw deflate, and RFC 1952 gzip, backed by libz.
-public enum Deflate:
-    CompressionAlgorithm,
-    OneShotCompressionAlgorithm,
-    OneShotDecompressionAlgorithm,
-    StreamingCompressionAlgorithm,
-    StreamingDecompressionAlgorithm
-{}
-
 extension Deflate {
     /// Stateless, one-shot deflate compressor.
     ///
@@ -30,8 +21,6 @@ extension Deflate {
             let fixedLength = inputSize + (inputSize >> 3) + (inputSize >> 8) + (inputSize >> 9) + 4
             let storeLength = inputSize + (inputSize >> 5) + (inputSize >> 7) + (inputSize >> 11) + 7
 
-            let level = configuration.level == .default ? .custom(6) : configuration.level
-
             let wrapLength =
                 switch configuration.format {
                 case .raw: 0
@@ -39,10 +28,10 @@ extension Deflate {
                 case .gzip: 18
                 }
 
-            let hashBits = Int(configuration.memory.rawValue) + 7
+            let hashBits = configuration.memory.rawValue + 7
             // w_bits is always 15
             if hashBits != 8 + 7 {
-                return (15 <= hashBits && level != .none ? fixedLength : storeLength) + wrapLength
+                return (15 <= hashBits && configuration.level != .none ? fixedLength : storeLength) + wrapLength
             }
 
             return inputSize + (inputSize >> 12) + (inputSize >> 14) + (inputSize >> 25) + 13 - 6
@@ -76,10 +65,10 @@ extension Deflate {
 
             let rt = unsafe CZlib_deflateInit2(
                 &stream,
-                configuration.level.rawValue,
+                Int32(configuration.level.rawValue),
                 CZLIB_Z_DEFLATED,
                 configuration.format.windowBits,
-                configuration.memory.rawValue,
+                Int32(configuration.memory.rawValue),
                 configuration.strategy.rawValue,
             )
             switch rt {

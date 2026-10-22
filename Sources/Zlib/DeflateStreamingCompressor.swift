@@ -21,10 +21,10 @@ extension Deflate {
 
             let rt = unsafe CZlib_deflateInit2(
                 &stream.value,
-                configuration.level.rawValue,
+                Int32(configuration.level.rawValue),
                 CZLIB_Z_DEFLATED,
                 configuration.format.windowBits,
-                configuration.memory.rawValue,
+                Int32(configuration.memory.rawValue),
                 configuration.strategy.rawValue,
             )
             precondition(rt == CZLIB_Z_OK, "deflateInit2 failed: \(rt)")
@@ -133,27 +133,6 @@ extension Deflate {
             default:
                 throw unsafe .fromZlib(status, message: czlib_z_zError(status))
             }
-        }
-    }
-}
-
-extension Deflate.StreamingCompressor {
-    /// Emit all pending compressed data, aligned to a byte boundary, without ending the stream.
-    ///
-    /// The handler may be called zero or more times.
-    @inlinable
-    public mutating func flush(
-        handler: (Span<UInt8>) throws(Deflate.Error) -> Void
-    ) throws(Deflate.Error) {
-        try withTemporaryAllocation(of: UInt8.self, capacity: Self.outputBufferSize) { output throws(Deflate.Error) in
-            var isFlushed: Bool
-            repeat {
-                isFlushed = try self.flush(into: &output)
-                if !output.isEmpty {
-                    try handler(output.span)
-                    output.removeAll()
-                }
-            } while !isFlushed
         }
     }
 }

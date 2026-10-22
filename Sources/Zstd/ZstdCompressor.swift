@@ -3,7 +3,7 @@ public import CompressionCore
 
 extension Zstd: OneShotCompressionAlgorithm {
     public struct Compressor: CompressionCore.Compressor {
-        public let configuration: ZstdCompressionConfiguration
+        public let configuration: CompressionConfiguration
 
         public init(configuration: Configuration = .default) {
             self.configuration = configuration
@@ -34,8 +34,8 @@ extension Zstd: OneShotCompressionAlgorithm {
             guard let cctx = unsafe ZSTD_createCCtx() else { throw .insufficientMemory }
             defer { _ = unsafe ZSTD_freeCCtx(cctx) }
 
-            unsafe try Zstd.check(ZSTD_CCtx_setParameter(cctx, ZSTD_c_strategy, configuration.strategy.rawValue))
-            unsafe try Zstd.check(ZSTD_CCtx_setParameter(cctx, ZSTD_c_compressionLevel, configuration.level.rawValue))
+            unsafe try Zstd.check(ZSTD_CCtx_setParameter(cctx, ZSTD_c_strategy, Int32(configuration.strategy.rawValue)))
+            unsafe try Zstd.check(ZSTD_CCtx_setParameter(cctx, ZSTD_c_compressionLevel, Int32(configuration.level.rawValue)))
 
             // `OutputSpan` only exposes a `MutableSpan` over its initialized prefix, so the
             // free capacity still has to be reached through the unsafe buffer pointer.

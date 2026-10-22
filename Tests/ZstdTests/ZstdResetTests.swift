@@ -1,5 +1,5 @@
 import Testing
-import Zstandard
+import CompressionZstd
 
 /// 4 KB of repetitive text. Both payloads are identical so that, if `reset()`
 /// left the previous frame's match history in place, the second frame would be
@@ -54,7 +54,7 @@ struct ZstdResetTests {
 
     @Test("After reset the compressor behaves like a fresh one with the same configuration")
     func resetKeepsConfiguration() throws {
-        let configuration = ZstdCompressionConfiguration(strategy: .btopt, level: 9)
+        let configuration = Zstd.CompressionConfiguration(strategy: .btopt, level: 9)
 
         var reused = Zstd.StreamingCompressor(configuration: configuration)
         var throwaway = [UInt8]()
@@ -103,7 +103,6 @@ struct ZstdResetTests {
     func resetClearsTheByteCount() throws {
         let frame = try Zstd.Compressor().compress(payload)
         let configuration = Zstd.DecompressionConfiguration(
-            windowLogMax: 0,
             maxDecompressedSize: payload.count
         )
         var decompressor = Zstd.StreamingDecompressor(configuration: configuration)

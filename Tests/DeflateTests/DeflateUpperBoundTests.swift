@@ -3,8 +3,8 @@ import Testing
 
 private let allBoundConfigurations: [Deflate.CompressionConfiguration] =
     [Deflate.Format.zlib, .raw, .gzip].flatMap { format in
-        [Deflate.MemoryUsage.custom(1), .low, .default, .high].flatMap { memory in
-            [Deflate.Level.none, .speed, .best].map { level in
+        [Deflate.MemoryUsage.low, .default, .high, 1].flatMap { memory in
+            [Deflate.Level.none, .fastest, .best].map { level in
                 Deflate.CompressionConfiguration(level: level, format: format, memory: memory)
             }
         }

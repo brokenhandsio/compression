@@ -5,7 +5,7 @@ extension Zstd: StreamingDecompressionAlgorithm {
     public struct StreamingDecompressor: CompressionCore.StreamingDecompressor, ~Copyable {
         public static var outputBufferSize: Int { ZSTD_DStreamOutSize() }
 
-        public let configuration: ZstdDecompressionConfiguration
+        public let configuration: DecompressionConfiguration
 
         @usableFromInline
         var stream: ZstdStreamBox
@@ -24,7 +24,7 @@ extension Zstd: StreamingDecompressionAlgorithm {
             set { _isFinished = newValue }
         }
 
-        public init(configuration: ZstdDecompressionConfiguration = .default) {
+        public init(configuration: DecompressionConfiguration = .default) {
             self.configuration = configuration
             self.decompressedBytesCount = 0
             self._isFinished = false

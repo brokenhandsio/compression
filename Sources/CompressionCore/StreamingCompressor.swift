@@ -61,6 +61,24 @@ extension StreamingCompressor where Self: ~Copyable {
         }
     }
 
+    /// Emit all pending compressed data without ending the stream.
+    ///
+    /// The handler may be called zero or more times.
+    public mutating func flush(
+        handler: (Span<UInt8>) throws(Failure) -> Void
+    ) throws(Failure) {
+        var isFlushed = false
+        try withTemporaryAllocation(of: UInt8.self, capacity: Self.outputBufferSize) { output throws(Failure) in
+            repeat {
+                isFlushed = try flush(into: &output)
+                if !output.isEmpty {
+                    try handler(output.span)
+                    output.removeAll()
+                }
+            } while !isFlushed
+        }
+    }
+
     /// Flush any remaining compressed data and finalize the stream.
     ///
     /// The handler may be called zero or more times.

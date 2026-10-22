@@ -1,5 +1,5 @@
 import Testing
-import Zstandard
+import CompressionZstd
 
 @Suite("Zstd Streaming Decompression Tests")
 struct ZstdStreamingDecompressionTests {
@@ -184,7 +184,7 @@ struct ZstdStreamingDecompressionTests {
 
         var decompressed = [UInt8]()
         var decompressor = Zstd.StreamingDecompressor(
-            configuration: .init(windowLogMax: 0, maxDecompressedSize: 1_000)
+            configuration: .init(maxDecompressedSize: 1_000)
         )
 
         #expect(throws: Zstd.Error.maxDecompressedSizeExceeded) {
@@ -200,7 +200,7 @@ struct ZstdStreamingDecompressionTests {
 
         // Comfortably above any single chunk's output, well below the total.
         var decompressor = Zstd.StreamingDecompressor(
-            configuration: .init(windowLogMax: 0, maxDecompressedSize: 50_000)
+            configuration: .init(maxDecompressedSize: 50_000)
         )
 
         var decompressed = [UInt8]()
@@ -244,7 +244,7 @@ struct ZstdStreamingDecompressionTests {
 
         var decompressed = [UInt8]()
         var decompressor = Zstd.StreamingDecompressor(
-            configuration: .init(windowLogMax: 0, expectedContentSize: input.count)
+            configuration: .init(expectedContentSize: input.count)
         )
         try decompressor.decompress(compressed.span) { decompressed.append(span: $0) }
 
@@ -258,7 +258,7 @@ struct ZstdStreamingDecompressionTests {
         let compressed = try Zstd.Compressor().compress(input)
 
         var decompressor = Zstd.StreamingDecompressor(
-            configuration: .init(windowLogMax: 0, expectedContentSize: expected)
+            configuration: .init(expectedContentSize: expected)
         )
 
         #expect(throws: Zstd.Error.contentSizeMismatch(expected: expected, actual: input.count)) {
@@ -316,7 +316,7 @@ struct ZstdStreamingDecompressionTests {
         let compressed = try Zstd.Compressor().compress(input) + [UInt8](repeating: 0xDE, count: 8)
 
         var decompressor = Zstd.StreamingDecompressor(
-            configuration: .init(windowLogMax: 0, trailingDataPolicy: .reject)
+            configuration: .init(trailingDataPolicy: .reject)
         )
 
         #expect(throws: Zstd.Error.unexpectedTrailingData) {
@@ -331,7 +331,7 @@ struct ZstdStreamingDecompressionTests {
         let compressed = try Zstd.Compressor().compress(first) + (try Zstd.Compressor().compress(second))
 
         var decompressor = Zstd.StreamingDecompressor(
-            configuration: .init(windowLogMax: 0, trailingDataPolicy: .reject)
+            configuration: .init(trailingDataPolicy: .reject)
         )
 
         #expect(throws: Zstd.Error.unexpectedTrailingData) {
@@ -346,7 +346,7 @@ struct ZstdStreamingDecompressionTests {
 
         var decompressed = [UInt8]()
         var decompressor = Zstd.StreamingDecompressor(
-            configuration: .init(windowLogMax: 0, trailingDataPolicy: .reject)
+            configuration: .init(trailingDataPolicy: .reject)
         )
         try decompressor.decompress(compressed.span) { decompressed.append(span: $0) }
 
@@ -362,7 +362,7 @@ struct ZstdStreamingDecompressionTests {
 
         var decompressed = [UInt8]()
         var decompressor = Zstd.StreamingDecompressor(
-            configuration: .init(windowLogMax: 0, trailingDataPolicy: .stop)
+            configuration: .init(trailingDataPolicy: .stop)
         )
         let consumed = try decompressor.decompress(compressed.span) { decompressed.append(span: $0) }
 
@@ -380,7 +380,7 @@ struct ZstdStreamingDecompressionTests {
 
         var decompressed = [UInt8]()
         var decompressor = Zstd.StreamingDecompressor(
-            configuration: .init(windowLogMax: 0, trailingDataPolicy: .stop)
+            configuration: .init(trailingDataPolicy: .stop)
         )
         let consumed = try decompressor.decompress(compressed.span) { decompressed.append(span: $0) }
 
@@ -395,7 +395,7 @@ struct ZstdStreamingDecompressionTests {
         let compressed = try Zstd.Compressor().compress(input) + [UInt8](repeating: 0xDE, count: 8)
 
         var decompressor = Zstd.StreamingDecompressor(
-            configuration: .init(windowLogMax: 0, trailingDataPolicy: .concatenate)
+            configuration: .init(trailingDataPolicy: .concatenate)
         )
 
         #expect(throws: Zstd.Error.corruptData) {
@@ -403,12 +403,8 @@ struct ZstdStreamingDecompressionTests {
         }
     }
 
-    /// Known limitation: the policy is applied per `decompress` call, because a
-    /// zstd `DCtx` resets to "expect a frame header" once a frame completes.
-    /// A second frame arriving in a *later* chunk is therefore decoded even
-    /// under `.reject`. Deflate rejects it, so the two differ here.
-    @Test("reject only sees trailing data within a single chunk")
-    func rejectIsPerChunk() throws {
+    @Test("reject throws on a second frame in a later chunk")
+    func rejectSecondFrameInLaterChunk() throws {
         let first = Array("first".utf8).cycled(times: 32)
         let second = Array("second".utf8).cycled(times: 32)
         let frameA = try Zstd.Compressor().compress(first)
@@ -416,12 +412,14 @@ struct ZstdStreamingDecompressionTests {
 
         var decompressed = [UInt8]()
         var decompressor = Zstd.StreamingDecompressor(
-            configuration: .init(windowLogMax: 0, trailingDataPolicy: .reject)
+            configuration: .init(trailingDataPolicy: .reject)
         )
         try decompressor.decompress(frameA.span) { decompressed.append(span: $0) }
-        try decompressor.decompress(frameB.span) { decompressed.append(span: $0) }
+        #expect(decompressed == first)
 
-        #expect(decompressed == first + second)
+        #expect(throws: Zstd.Error.unexpectedTrailingData) {
+            try decompressor.decompress(frameB.span) { _ in }
+        }
     }
 
     @Test("expectedContentSize is honoured when input arrives split across chunks")
@@ -431,7 +429,7 @@ struct ZstdStreamingDecompressionTests {
 
         var decompressed = [UInt8]()
         var decompressor = Zstd.StreamingDecompressor(
-            configuration: .init(windowLogMax: 0, expectedContentSize: input.count)
+            configuration: .init(expectedContentSize: input.count)
         )
 
         for start in stride(from: 0, to: compressed.count, by: 16) {
@@ -454,7 +452,7 @@ struct ZstdStreamingDecompressionTests {
         let compressed = try Zstd.Compressor().compress(input)
 
         var decompressor = Zstd.StreamingDecompressor(
-            configuration: .init(windowLogMax: 0, expectedContentSize: expected)
+            configuration: .init(expectedContentSize: expected)
         )
 
         #expect(throws: Zstd.Error.contentSizeMismatch(expected: expected, actual: input.count)) {
@@ -475,13 +473,13 @@ struct ZstdStreamingDecompressionTests {
 
         var decompressed = [UInt8]()
         var matching = Zstd.StreamingDecompressor(
-            configuration: .init(windowLogMax: 0, expectedContentSize: input.count)
+            configuration: .init(expectedContentSize: input.count)
         )
         try matching.decompress(compressed.span) { decompressed.append(span: $0) }
         #expect(decompressed == input)
 
         var mismatching = Zstd.StreamingDecompressor(
-            configuration: .init(windowLogMax: 0, expectedContentSize: input.count + 1)
+            configuration: .init(expectedContentSize: input.count + 1)
         )
         #expect(
             throws: Zstd.Error.contentSizeMismatch(expected: input.count + 1, actual: input.count)

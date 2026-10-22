@@ -1,14 +1,14 @@
 import Testing
-import Zstandard
+import CompressionZstd
 
-private let allBoundConfigurations: [ZstdCompressionConfiguration] =
+private let allBoundConfigurations: [Zstd.CompressionConfiguration] =
     ([.auto] + allStrategies).map { .init(strategy: $0, level: .default) }
     + [.min, .fastest, .default, .max].map { .init(strategy: .auto, level: $0) }
 
 @Suite("Zstd upperBound")
 struct ZstdUpperBoundTests {
     @Test("A buffer of exactly upperBound fits incompressible input", arguments: allBoundConfigurations)
-    func boundFitsIncompressibleInput(configuration: ZstdCompressionConfiguration) throws {
+    func boundFitsIncompressibleInput(configuration: Zstd.CompressionConfiguration) throws {
         let input = pseudoRandomBytes(count: 128 * 1024)
         let compressor = Zstd.Compressor(configuration: configuration)
         let bound = compressor.upperBound(forInputSize: input.count)

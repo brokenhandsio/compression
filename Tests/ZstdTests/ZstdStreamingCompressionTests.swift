@@ -1,5 +1,5 @@
 import Testing
-import Zstandard
+import CompressionZstd
 
 @Suite("Zstd Streaming Compression Tests")
 struct ZstdStreamingCompressionTests {
@@ -140,9 +140,9 @@ private let compressionCases: [(name: String, configuration: Zstd.CompressionCon
 /// above, and a `maxDecompressedSize` both unset and exactly at the input size.
 private let decompressionCases: [(name: String, configuration: Zstd.DecompressionConfiguration)] = [
     (name: "default", configuration: .default)
-    // (name: "windowLogMax=0", configuration: .init(windowLogMax: 0, maxDecompressedSize: nil)),
+    // (name: "windowLogMax=0", configuration: .init(maxDecompressedSize: nil)),
     // (name: "windowLogMax=27", configuration: .init(windowLogMax: 27, maxDecompressedSize: nil)),
-    // (name: "maxDecompressedSize=50_000", configuration: .init(windowLogMax: 0, maxDecompressedSize: 50_000)),
+    // (name: "maxDecompressedSize=50_000", configuration: .init(maxDecompressedSize: 50_000)),
     // (name: "windowLogMax=27, maxDecompressedSize=50_000", configuration: .init(windowLogMax: 27, maxDecompressedSize: 50_000)),
 ]
 

@@ -1,7 +1,7 @@
 import CZlib
 
 extension Deflate {
-    public enum Error: Swift.Error, CustomStringConvertible, Sendable {
+    public enum Error: Swift.Error, CustomStringConvertible, Hashable, Sendable {
         /// zlib couldn't allocate memory for its internal state.
         case insufficientMemory
         /// Input is not a valid deflate/zlib/gzip stream.
@@ -19,11 +19,11 @@ extension Deflate {
         /// Unexpected zlib state. Indicates a bug in this package.
         case internalError
         /// Raw zlib error code and message, for codes that don't map to one of the above.
-        case zlib(code: Int32, message: String)
+        case zlib(code: Int, message: String)
 
         @usableFromInline
         static func fromZlib(_ code: Int32, message: UnsafePointer<CChar>) -> Self {
-            .zlib(code: code, message: unsafe String(cString: message))
+            .zlib(code: Int(code), message: unsafe String(cString: message))
         }
 
         public var description: String {

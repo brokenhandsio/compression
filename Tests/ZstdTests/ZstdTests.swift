@@ -1,7 +1,7 @@
 import CZstd
 import Testing
 
-@testable import Zstandard
+@testable import CompressionZstd
 
 @Suite("One-shot Zstd")
 struct ZstdTests {
@@ -58,7 +58,7 @@ struct ZstdTests {
     }
 
     @Test("Round-trips across every strategy", arguments: allStrategies)
-    func roundTripStrategies(strategy: ZstdCompressionConfiguration.Strategy) throws {
+    func roundTripStrategies(strategy: Zstd.CompressionConfiguration.Strategy) throws {
         let input = Array(
             "The quick brown fox jumps over the lazy dog. ".utf8
         ).cycled(times: 200)
@@ -68,7 +68,7 @@ struct ZstdTests {
     }
 
     @Test("Round-trips across compression levels", arguments: [1, 3, 5, 9, 12, 19, 22])
-    func roundTripLevels(level: Int32) throws {
+    func roundTripLevels(level: Int) throws {
         let input = Array("Level \(level) payload. ".utf8).cycled(times: 500)
 
         let c = Zstd.Compressor(configuration: .init(strategy: .greedy, level: .init(rawValue: level)))

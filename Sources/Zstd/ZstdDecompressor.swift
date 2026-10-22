@@ -3,7 +3,7 @@ public import CompressionCore
 
 extension Zstd: OneShotDecompressionAlgorithm {
     public struct Decompressor: CompressionCore.Decompressor {
-        public let configuration: ZstdDecompressionConfiguration
+        public let configuration: DecompressionConfiguration
 
         public init(configuration: DecompressionConfiguration = .default) {
             self.configuration = configuration

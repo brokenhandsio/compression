@@ -13,7 +13,7 @@ let package = Package(
     products: [
         .library(
             name: "Compression",
-            targets: ["CompressionCore", "CompressionDeflate", "CompressionFoundation"]
+            targets: ["CompressionCore", "CompressionDeflate", "CompressionFoundation", "CompressionZstd"]
         ),
         .library(
             name: "CompressionDeflate",
@@ -21,7 +21,7 @@ let package = Package(
         ),
         .library(
             name: "CompressionZstd",
-            targets: ["Zstandard"]
+            targets: ["CompressionZstd"]
         ),
     ],
     targets: [
@@ -62,7 +62,7 @@ let package = Package(
         .testTarget(
             name: "ZstdTests",
             dependencies: [
-                .target(name: "Zstandard"),
+                .target(name: "CompressionZstd"),
                 .target(name: "CZstd"),
             ],
         ),
@@ -78,7 +78,7 @@ let package = Package(
             swiftSettings: swiftSettings,
         ),
         .target(
-            name: "Zstandard",
+            name: "CompressionZstd",
             dependencies: ["CZstd", "CompressionCore"],
             path: "Sources/Zstd",
             swiftSettings: swiftSettings

@@ -26,12 +26,12 @@ extension Zstd {
         /// Input continued past end-of-stream when
         /// `DecompressionConfiguration.trailingDataPolicy` did not allow for it.
         case unexpectedTrailingData
-        /// Any other zstd failure. `code` is the `ZSTD_ErrorCode`; `message` is
+        /// Any other zstd failure. `code` is the raw `ZSTD_ErrorCode` value; `message` is
         /// what `ZSTD_getErrorString` reports for it.
-        case zstd(code: ZSTD_ErrorCode, message: String)
+        case zstd(code: Int, message: String)
 
         /// Map a `ZSTD_ErrorCode` onto the named cases, falling back to ``zstd(code:message:)``.
-        public init(_ code: ZSTD_ErrorCode) {
+        init(_ code: ZSTD_ErrorCode) {
             switch code {
             case ZSTD_error_memory_allocation:
                 self = .insufficientMemory
@@ -50,14 +50,14 @@ extension Zstd {
                 self = .outputBufferTooSmall
             default:
                 // zstd ships the message strings, so there's nothing to keep in sync.
-                self = .zstd(code: code, message: unsafe String(cString: ZSTD_getErrorString(code)))
+                self = .zstd(code: Int(code.rawValue), message: unsafe String(cString: ZSTD_getErrorString(code)))
             }
         }
 
         /// Wrap the error carried by any `size_t` zstd return value.
         ///
         /// Only meaningful when `ZSTD_isError(result)` is non-zero.
-        public init(result: Int) {
+        init(result: Int) {
             self.init(ZSTD_getErrorCode(result))
         }
 
@@ -72,7 +72,7 @@ extension Zstd {
             case .contentSizeMismatch(let expected, let actual):
                 "Zstd.Error: expected content size (\(expected)) does not match actual (\(actual))"
             case .unexpectedTrailingData: "Zstd.Error: unexpected trailing data after end of stream"
-            case .zstd(let code, let message): "Zstd.Error(\(code.rawValue)): \(message)"
+            case .zstd(let code, let message): "Zstd.Error(\(code)): \(message)"
             }
         }
     }

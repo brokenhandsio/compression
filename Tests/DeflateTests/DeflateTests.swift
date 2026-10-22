@@ -135,21 +135,6 @@ struct DeflateTests {
 
     // MARK: - Array-returning convenience
 
-    /// The array convenience must grow past `decompressedSizeHint`. A small hint
-    /// is just a starting capacity, not a cap — this is the case that was broken
-    /// when the convenience was layered over the fixed-capacity OutputSpan path.
-    @Test("Array decompress grows past the size hint")
-    func decompressGrowsPastHint() throws {
-        let input = [UInt8](repeating: 0, count: 1_000_000)
-        let compressed = try compressor.compress(input)
-
-        let d = Deflate.Decompressor(
-            configuration: .init(decompressedSizeHint: 1_024)
-        )
-        let output = try d.decompress(compressed)
-        #expect(output == input)
-    }
-
     @Test("Array decompress grows past the hint with no hint at all")
     func decompressGrowsWithoutHint() throws {
         // Compresses to ~1 KB, decompresses to 1 MB. The default heuristic
@@ -201,22 +186,5 @@ struct DeflateTests {
 
         let frame = Array(combined.dropFirst(prefix.count))
         #expect(try decompressor.decompress(frame) == input)
-    }
-}
-
-extension Deflate.Error: Equatable {
-    public static func == (lhs: Deflate.Error, rhs: Deflate.Error) -> Bool {
-        switch (lhs, rhs) {
-        case (.insufficientMemory, .insufficientMemory): true
-        case (.corruptData, .corruptData): true
-        case (.outputBufferTooSmall, .outputBufferTooSmall): true
-        case (.maxDecompressedSizeExceeded, .maxDecompressedSizeExceeded): true
-        case (.truncatedInput, .truncatedInput): true
-        case (.unexpectedTrailingData, .unexpectedTrailingData): true
-        case (.internalError, .internalError): true
-        case (.zlib(code: let lhsCode, message: let lhsMessage), .zlib(code: let rhsCode, message: let rhsMessage)):
-            lhsCode == rhsCode && lhsMessage == rhsMessage
-        default: false
-        }
     }
 }

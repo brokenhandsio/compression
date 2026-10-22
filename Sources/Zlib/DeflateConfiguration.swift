@@ -34,7 +34,7 @@ extension Deflate {
         /// Raw deflate, no framing. Suitable for ZIP, PNG, etc.
         public static let raw = Self(format: .raw)
         /// Fastest compression (level 1, high memory). Prioritises CPU over ratio.
-        public static let fast = Self(level: .speed, memory: .high)
+        public static let fast = Self(level: .fastest, memory: .high)
         /// Best compression (level 9). Prioritises ratio over CPU.
         public static let best = Self(level: .best)
     }
@@ -45,8 +45,6 @@ extension Deflate {
         /// Maximum amount of data we allow to be decompressed.
         /// This protects against decompression bombs.
         public var maxDecompressedSize: Int?
-        /// Initial capacity hint for the output buffer. Doesn't constrain the result.
-        public var decompressedSizeHint: Int?
         /// This setting configures what to do when we encounter another member
         /// after we're done streaming the first one.
         public var trailingDataPolicy: TrailingDataPolicy
@@ -54,19 +52,16 @@ extension Deflate {
         public init() {
             self.format = .zlib
             self.maxDecompressedSize = nil
-            self.decompressedSizeHint = nil
             self.trailingDataPolicy = .reject
         }
 
         package init(
             format: Deflate.Format = .zlib,
             maxDecompressedSize: Int? = nil,
-            decompressedSizeHint: Int? = nil,
             trailingDataPolicy: TrailingDataPolicy = .reject
         ) {
             self.format = format
             self.maxDecompressedSize = maxDecompressedSize
-            self.decompressedSizeHint = decompressedSizeHint
             self.trailingDataPolicy = trailingDataPolicy
         }
 
@@ -76,27 +71,26 @@ extension Deflate {
 }
 
 extension Deflate {
-    public enum Level: Sendable, Equatable {
-        /// zlib default (~level 6). Good balance of speed and compression.
-        case `default`
-        /// No compression. Output is slightly larger than input (header overhead).
-        case none
-        /// Fastest compression (level 1). Low CPU, larger output.
-        case speed
-        /// Best compression (level 9). High CPU, smallest output.
-        case best
-        /// Explicit level in the range 1–9.
-        case custom(Int32)
+    /// zlib compression level, 0 (store only) through 9. Out-of-range values clamp.
+    public struct Level: RawRepresentable, Hashable, Comparable, Sendable, ExpressibleByIntegerLiteral {
+        public let rawValue: Int
 
-        var rawValue: Int32 {
-            switch self {
-            case .default: CZLIB_Z_DEFAULT_COMPRESSION
-            case .none: CZLIB_Z_NO_COMPRESSION
-            case .speed: CZLIB_Z_BEST_SPEED
-            case .best: CZLIB_Z_BEST_COMPRESSION
-            case .custom(let v): max(CZLIB_Z_BEST_SPEED, min(CZLIB_Z_BEST_COMPRESSION, v))
-            }
+        public init(rawValue: Int) {
+            self.rawValue = Swift.max(0, Swift.min(9, rawValue))
         }
+
+        public init(integerLiteral value: Int) { self.init(rawValue: value) }
+
+        public static func < (lhs: Self, rhs: Self) -> Bool { lhs.rawValue < rhs.rawValue }
+
+        /// No compression. Output is slightly larger than input (header overhead).
+        public static let none: Self = 0
+        /// Fastest compression. Low CPU, larger output.
+        public static let fastest: Self = 1
+        /// zlib's default (level 6). Good balance of speed and ratio.
+        public static let `default`: Self = 6
+        /// Best compression. High CPU, smallest output.
+        public static let best: Self = 9
     }
 
     /// Controls framing: zlib header (RFC 1950), raw deflate (RFC 1951), or gzip (RFC 1952).
@@ -144,28 +138,24 @@ extension Deflate {
     /// Controls how much memory the deflate compressor allocates for its
     /// internal LZ77 state. Higher values compress slightly better and run faster,
     /// at the cost of RAM.
-    public enum MemoryUsage: Sendable {
-        /// memLevel 3: Suitable for memory-constrained environments
-        /// at the cost of noticeably slower compression and a small ratio penalty.
-        case low
-        /// memLevel 8. zlib's default and the
-        /// recommended choice for almost all use cases.
-        case `default`
-        /// memLevel 9. Slightly faster than `.default`
-        /// with marginally better ratio. Pick when you compress many buffers
-        /// in tight succession and the extra RAM isn't a concern.
-        case high
-        /// Explicit `memLevel` in the range 1–9. Values outside the range are
-        /// clamped to the nearest endpoint.
-        case custom(Int32)
+    /// zlib `memLevel`, 1 through 9. Out-of-range values clamp.
+    public struct MemoryUsage: RawRepresentable, Hashable, Comparable, Sendable, ExpressibleByIntegerLiteral {
+        public let rawValue: Int
 
-        var rawValue: Int32 {
-            switch self {
-            case .low: 3
-            case .default: 8
-            case .high: 9
-            case .custom(let value): max(1, min(9, value))
-            }
+        public init(rawValue: Int) {
+            self.rawValue = Swift.max(1, Swift.min(9, rawValue))
         }
+
+        public init(integerLiteral value: Int) { self.init(rawValue: value) }
+
+        public static func < (lhs: Self, rhs: Self) -> Bool { lhs.rawValue < rhs.rawValue }
+
+        /// memLevel 3. Suitable for memory-constrained environments
+        /// at the cost of noticeably slower compression and a small ratio penalty.
+        public static let low: Self = 3
+        /// memLevel 8. zlib's default and the recommended choice for almost all use cases.
+        public static let `default`: Self = 8
+        /// memLevel 9. Slightly faster than `.default` with marginally better ratio.
+        public static let high: Self = 9
     }
 }
