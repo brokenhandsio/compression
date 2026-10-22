@@ -69,7 +69,7 @@ extension Deflate {
 }
 
 extension Deflate {
-    public enum Level: Sendable {
+    public enum Level: Sendable, Equatable {
         /// zlib default (~level 6). Good balance of speed and compression.
         case `default`
         /// No compression. Output is slightly larger than input (header overhead).
@@ -106,16 +106,6 @@ extension Deflate {
             case .zlib: 15
             case .raw: -15
             case .gzip: 31  // 15 + 16
-            }
-        }
-
-        /// Extra output-bound padding on top of `compressBound`, which only
-        /// budgets for zlib framing (2-byte header + 4-byte Adler-32 trailer).
-        /// gzip framing is 18 bytes: 10-byte header + 8-byte CRC-32/size trailer.
-        var extraBoundOverhead: Int {
-            switch self {
-            case .zlib, .raw: 0
-            case .gzip: 12
             }
         }
     }

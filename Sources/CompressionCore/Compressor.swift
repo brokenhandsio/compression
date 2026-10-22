@@ -16,4 +16,7 @@ public protocol Compressor: Sendable {
     /// Compress `input` into `output`, advancing its initialized count.
     /// Throws if `output` doesn't have enough free capacity.
     func compress(_ input: some CompressibleInput, into output: inout OutputSpan<UInt8>) throws(Failure)
+
+    /// Returns the size of the buffer you should allocate if using the ``compress(_:into:)`` API.
+    func upperBound(forInputSize inputSize: Int) -> Int
 }

@@ -9,9 +9,14 @@ extension Zstd: OneShotCompressionAlgorithm {
             self.configuration = configuration
         }
 
+        public func upperBound(forInputSize inputSize: Int) -> Int {
+            precondition(inputSize >= 0, "inputSize must not be negative, got \(inputSize)")
+            return ZSTD_compressBound(inputSize)
+        }
+
         public func compress(_ input: some CompressionCore.CompressibleInput) throws(Zstd.Error) -> [UInt8] {
             try input.withSpan { inputSpan throws(Zstd.Error) in
-                let bound = try Zstd.check(ZSTD_compressBound(inputSpan.count))
+                let bound = upperBound(forInputSize: inputSpan.count)
 
                 return try [UInt8](capacity: bound) { output throws(Zstd.Error) in
                     try compress(inputSpan, into: &output)
