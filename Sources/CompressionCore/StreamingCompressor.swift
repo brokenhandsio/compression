@@ -25,6 +25,12 @@ public protocol StreamingCompressor: ~Copyable, Sendable {
     mutating func finish(
         into output: inout OutputSpan<UInt8>
     ) throws(Failure) -> Bool
+
+    /// Discard all stream state and start over, keeping `configuration`.
+    ///
+    /// Any data compressed after this is independent of what came before, so it
+    /// decodes on its own. A stream that was never finished is dropped.
+    mutating func reset()
 }
 
 extension StreamingCompressor where Self: ~Copyable {

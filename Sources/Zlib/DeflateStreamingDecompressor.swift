@@ -130,5 +130,12 @@ extension Deflate {
 
             return chunk.count - Int(unsafe stream.value.avail_in)
         }
+
+        @inlinable
+        public mutating func reset() {
+            unsafe czlib_z_inflateReset(&self.stream.value)
+            self.decompressedBytesCount = 0
+            self._isFinished = false
+        }
     }
 }

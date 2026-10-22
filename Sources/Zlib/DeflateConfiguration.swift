@@ -8,7 +8,14 @@ extension Deflate {
         public var memory: MemoryUsage
         public var strategy: Strategy
 
-        public init(
+        public init() {
+            self.level = .default
+            self.format = .zlib
+            self.memory = .default
+            self.strategy = .default
+        }
+
+        package init(
             level: Level = .default,
             format: Format = .zlib,
             memory: MemoryUsage = .default,
