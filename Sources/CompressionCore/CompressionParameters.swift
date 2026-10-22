@@ -20,6 +20,6 @@ public enum TrailingDataPolicy: Sendable {
     /// Ignore them and return consumed input count.
     case stop
     /// We're expecting another member, keep decompressing.
-    /// Algorithms without multi-stream support treat this as `.reject`.r
+    /// Algorithms without multi-stream support treat this as `.reject`.
     case concatenate
 }

@@ -21,9 +21,6 @@ extension Zstd {
         case outputBufferTooSmall
         /// Output would exceed `DecompressionConfiguration.maxDecompressedSize`.
         case maxDecompressedSizeExceeded
-        /// Frame header doesn't record the content size, so a one-shot output
-        /// buffer can't be sized up front. Use the streaming decompressor instead.
-        case unknownContentSize
         /// The decompressed byte count is not the same as the expected one.
         case contentSizeMismatch(expected: Int, actual: Int)
         /// Input continued past end-of-stream when
@@ -72,7 +69,6 @@ extension Zstd {
             case .truncatedInput: "Zstd.Error: truncated or incomplete input"
             case .outputBufferTooSmall: "Zstd.Error: output buffer too small"
             case .maxDecompressedSizeExceeded: "Zstd.Error: max decompressed size exceeded"
-            case .unknownContentSize: "Zstd.Error: frame does not declare its content size"
             case .contentSizeMismatch(let expected, let actual):
                 "Zstd.Error: expected content size (\(expected)) does not match actual (\(actual))"
             case .unexpectedTrailingData: "Zstd.Error: unexpected trailing data after end of stream"

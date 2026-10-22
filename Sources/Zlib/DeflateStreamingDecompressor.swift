@@ -11,9 +11,6 @@ extension Deflate {
         var stream: ZStreamBox
 
         @usableFromInline
-        var buffer: [UInt8]
-
-        @usableFromInline
         var decompressedBytesCount: Int
 
         @usableFromInline
@@ -36,10 +33,6 @@ extension Deflate {
 
             let rt = unsafe CZlib_inflateInit2(&stream.value, configuration.format.windowBits)
             precondition(rt == CZLIB_Z_OK, "inflateInit2 failed: \(rt)")
-
-            buffer = unsafe .init(unsafeUninitializedCapacity: 32 * 1024) { _, count in
-                count = 32 * 1024
-            }
 
             decompressedBytesCount = 0
             _isFinished = false

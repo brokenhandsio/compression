@@ -22,23 +22,8 @@ extension Deflate {
         case zlib(code: Int32, message: String)
 
         @usableFromInline
-        static func fromZlib(_ code: Int32, message: UnsafePointer<CChar>? = nil) -> Self {
-            let msg: String
-            if let m = unsafe message {
-                msg = unsafe String(cString: m)
-            } else {
-                msg =
-                    switch code {
-                    case CZLIB_Z_ERRNO: "File I/O error"
-                    case CZLIB_Z_STREAM_ERROR: "Stream state inconsistent"
-                    case CZLIB_Z_DATA_ERROR: "Invalid or corrupted data"
-                    case CZLIB_Z_MEM_ERROR: "Insufficient memory"
-                    case CZLIB_Z_BUF_ERROR: "No progress possible"
-                    case CZLIB_Z_VERSION_ERROR: "Incompatible zlib version"
-                    default: "Unknown zlib error (\(code))"
-                    }
-            }
-            return .zlib(code: code, message: msg)
+        static func fromZlib(_ code: Int32, message: UnsafePointer<CChar>) -> Self {
+            .zlib(code: code, message: unsafe String(cString: message))
         }
 
         public var description: String {

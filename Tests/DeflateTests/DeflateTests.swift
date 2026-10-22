@@ -185,6 +185,23 @@ struct DeflateTests {
         )
         #expect(try d.decompress(compressed) == input)
     }
+
+    @Test("compress(_:into:) appends after existing content")
+    func compressIntoOutputSpanAppends() throws {
+        let prefix: [UInt8] = [0xDE, 0xAD, 0xBE, 0xEF]
+        let input = Array("appended payload".utf8)
+
+        let combined = try [UInt8](capacity: prefix.count + input.count + 64) { output throws(Deflate.Error) in
+            for byte in prefix { output.append(byte) }
+            try compressor.compress(input.span, into: &output)
+        }
+
+        #expect(Array(combined.prefix(4)) == prefix, "existing bytes must survive")
+        #expect(combined.count > prefix.count, "compressed bytes must be appended")
+
+        let frame = Array(combined.dropFirst(prefix.count))
+        #expect(try decompressor.decompress(frame) == input)
+    }
 }
 
 extension Deflate.Error: Equatable {

@@ -20,7 +20,7 @@ extension Deflate {
             var streaming = StreamingDecompressor(configuration: configuration)
             var output = [UInt8]()
             try input.withSpan { span throws(Deflate.Error) in
-                output.reserveCapacity(configuration.decompressedSizeHint ?? span.count * 4)
+                output.reserveCapacity(configuration.decompressedSizeHint ?? min(span.count * 4, 1 << 20))
                 try streaming.decompress(span) { output.append(span: $0) }
             }
             // One-shot: all input was provided, so the stream must have ended.
@@ -55,6 +55,8 @@ extension Deflate {
             unsafe stream.next_in = CZlib_voidPtr_to_BytefPtr(input)
             var status: Int32 = CZLIB_Z_OK
 
+            var decompressedCount: Int = 0
+
             decode: while true {
                 unsafe try output.withUnsafeMutableBufferPointer { tail, initializedCount throws(Deflate.Error) in
                     let free = tail.count - initializedCount
@@ -67,6 +69,11 @@ extension Deflate {
                     status = unsafe czlib_z_inflate(&stream, CZLIB_Z_NO_FLUSH)
                     let written = free - Int(unsafe stream.avail_out)
                     initializedCount += written
+                    decompressedCount += written
+
+                    if let maxDecompressedSize = configuration.maxDecompressedSize, decompressedCount > maxDecompressedSize {
+                        throw .maxDecompressedSizeExceeded
+                    }
 
                     switch status {
                     case CZLIB_Z_OK, CZLIB_Z_STREAM_END: break

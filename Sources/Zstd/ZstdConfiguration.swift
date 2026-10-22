@@ -42,7 +42,7 @@ public struct ZstdCompressionConfiguration: CompressionParameters {
         public static let max = best
     }
 
-    public static let `default`: ZstdCompressionConfiguration = .init(strategy: .auto, level: .default)
+    public static let `default` = Self()
 
     public init() {
         self.strategy = .auto
@@ -59,7 +59,7 @@ public struct ZstdCompressionConfiguration: CompressionParameters {
 }
 
 public struct ZstdDecompressionConfiguration: DecompressionParameters {
-    public static let `default`: ZstdDecompressionConfiguration = .init(windowLogMax: 0)
+    public static let `default` = Self()
 
     public init() {
         self.windowLogMax = 0
@@ -93,8 +93,6 @@ public struct ZstdDecompressionConfiguration: DecompressionParameters {
     }
 
     public var maxDecompressedSize: Int?
-    /// This is only used on the StreamingDecompressor. The OneShotCompressor will take an
-    /// `expectedDecompressedSize` parameter in `decompress` as the compressor can be reused.
     /// This won't have any effect if `trailingDataPolicy` is set to `concatenate`.
     public var expectedContentSize: Int?
     /// This setting configures what to do when we encounter another member

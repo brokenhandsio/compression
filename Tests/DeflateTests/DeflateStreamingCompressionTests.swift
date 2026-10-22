@@ -131,7 +131,7 @@ struct DeflateStreamingCompressorTests {
     func compressIntoASmallBuffer() throws {
         let input = (0..<1_000_000).map { _ in UInt8.random(in: 0...255) }
 
-        let compressor = Deflate.StreamingCompressor()
+        var compressor = Deflate.StreamingCompressor()
         var output = [UInt8]()
         var consumed = 0
         var isFirstRound = true

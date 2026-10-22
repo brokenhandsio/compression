@@ -115,7 +115,7 @@ extension Deflate {
                 default: throw .internalError
                 }
 
-                let written = tail.count - Int(unsafe stream.avail_out)
+                let written = free - Int(unsafe stream.avail_out)
                 initializedCount += written
             }
         }

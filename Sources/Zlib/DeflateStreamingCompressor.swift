@@ -35,7 +35,7 @@ extension Deflate {
         }
 
         @inlinable
-        public func compress(
+        public mutating func compress(
             _ chunk: Span<UInt8>,
             into output: inout OutputSpan<UInt8>
         ) throws(Deflate.Error) -> Int {
@@ -69,7 +69,7 @@ extension Deflate {
         /// emitting repeated flush markers.
         @inlinable
         @discardableResult
-        public func flush(
+        public mutating func flush(
             into output: inout OutputSpan<UInt8>
         ) throws(Deflate.Error) -> Bool {
             guard output.freeCapacity > 0 else { return false }
@@ -83,7 +83,7 @@ extension Deflate {
         }
 
         @inlinable
-        public func finish(
+        public mutating func finish(
             into output: inout OutputSpan<UInt8>
         ) throws(Deflate.Error) -> Bool {
             guard !self.isFinished else { return true }
@@ -92,7 +92,8 @@ extension Deflate {
 
             let status = try deflateStep(flag: CZLIB_Z_FINISH, into: &output)
 
-            return status == CZLIB_Z_STREAM_END
+            self.isFinished = status == CZLIB_Z_STREAM_END
+            return self.isFinished
         }
 
         @inlinable

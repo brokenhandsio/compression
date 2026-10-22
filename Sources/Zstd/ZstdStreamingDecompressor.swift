@@ -13,12 +13,21 @@ extension Zstd: StreamingDecompressionAlgorithm {
         @usableFromInline
         var decompressedBytesCount: Int
 
-        public var isFinished: Bool
+        @usableFromInline
+        var _isFinished: Bool
+        /// True once end-of-stream has been observed.
+        /// Resets to `false` when a concatenated stream starts a new member.
+        public internal(set) var isFinished: Bool {
+            @inlinable
+            get { _isFinished }
+            @usableFromInline
+            set { _isFinished = newValue }
+        }
 
         public init(configuration: ZstdDecompressionConfiguration = .default) {
             self.configuration = configuration
             self.decompressedBytesCount = 0
-            isFinished = false
+            self._isFinished = false
 
             self.stream = .decompression()
             unsafe Zstd.preconditionCheck(ZSTD_DCtx_setParameter(stream.value, ZSTD_d_windowLogMax, configuration.effectiveWindowLogMax))
@@ -40,8 +49,14 @@ extension Zstd: StreamingDecompressionAlgorithm {
                 if chunk.extracting(consumed...).isEmpty { return consumed }
 
                 // We got new bytes and a place to write them:
-                // we're not done even if we were before
-                self.isFinished = false
+                // we're not done even if we were before, but check if the policy allows it
+                if _isFinished {
+                    switch self.configuration.trailingDataPolicy {
+                    case .concatenate: self._isFinished = false
+                    case .reject: throw .unexpectedTrailingData
+                    case .stop: return consumed
+                    }
+                }
 
                 let result = unsafe output.withUnsafeMutableBufferPointer { tail, initialisedCount -> CZstd_StreamResult? in
                     let free = tail.count - initialisedCount
@@ -76,7 +91,7 @@ extension Zstd: StreamingDecompressionAlgorithm {
 
                     // We really are done
                     if consumed == chunk.count {
-                        isFinished = true
+                        self._isFinished = true
 
                         if let expectedContentSize = configuration.expectedContentSize {
                             guard decompressedBytesCount == expectedContentSize else {
@@ -91,12 +106,12 @@ extension Zstd: StreamingDecompressionAlgorithm {
                     switch configuration.trailingDataPolicy {
                     case .reject:
                         // If we don't allow for exstra trailing data, throw
-                        isFinished = true
+                        self._isFinished = true
                         throw .unexpectedTrailingData
 
                     case .stop:
                         // If we want to stop after reaching a frame's end, return
-                        isFinished = true
+                        self._isFinished = true
 
                         if let expectedContentSize = configuration.expectedContentSize {
                             guard decompressedBytesCount == expectedContentSize else {
@@ -109,7 +124,7 @@ extension Zstd: StreamingDecompressionAlgorithm {
                     case .concatenate:
                         // If we want to concatenate frames, continue
                         again = true
-                        isFinished = false
+                        self._isFinished = false
                     }
                 }
             }
@@ -120,7 +135,7 @@ extension Zstd: StreamingDecompressionAlgorithm {
         @inlinable
         public mutating func reset() {
             unsafe ZSTD_DCtx_reset(self.stream.value, ZSTD_reset_session_only)
-            self.isFinished = false
+            self._isFinished = false
             self.decompressedBytesCount = 0
         }
     }

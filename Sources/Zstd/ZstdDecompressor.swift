@@ -13,7 +13,10 @@ extension Zstd: OneShotDecompressionAlgorithm {
             try input.withSpan { inputSpan throws(Zstd.Error) in
                 let declared = try getDecompressedSize(from: inputSpan)
 
-                if declared != ZSTD_CONTENTSIZE_UNKNOWN, let capacity = Int(exactly: declared) {
+                if declared != ZSTD_CONTENTSIZE_UNKNOWN,
+                    let capacity = Int(exactly: declared),
+                    configuration.trailingDataPolicy == .concatenate  // if we're not concatenating, go to the stream fallback
+                {
                     if let max = configuration.maxDecompressedSize, capacity > max {
                         throw .maxDecompressedSizeExceeded
                     }
@@ -73,6 +76,10 @@ extension Zstd: OneShotDecompressionAlgorithm {
                 var dst = unsafe MutableSpan(_unsafeElements: outputPtr.extracting(initCount...))
                 let status = unsafe CZstd_decompressDCtx(dctx, &dst, input)
                 try Zstd.check(status)
+
+                if let maxDecompressedSize = configuration.maxDecompressedSize, status > maxDecompressedSize {
+                    throw .maxDecompressedSizeExceeded
+                }
 
                 initCount += status
             }

@@ -20,6 +20,12 @@ public protocol StreamingCompressor: ~Copyable, Sendable {
         into output: inout OutputSpan<UInt8>
     ) throws(Failure) -> Int
 
+    /// Flush any remaining compressed data.
+    @discardableResult
+    mutating func flush(
+        into output: inout OutputSpan<UInt8>
+    ) throws(Failure) -> Bool
+
     /// Flush any remaining compressed data and finalize the stream.
     @discardableResult
     mutating func finish(
