@@ -20,10 +20,9 @@ public protocol StreamingDecompressor: ~Copyable, Sendable {
 
     init(configuration: Configuration)
 
-    /// Decompress `chunk` and call `handler` with each produced output span.
+    /// Decompress `chunk` into the provided `OutputSpan`.
     ///
-    /// The handler may be called zero or more times per invocation, depending
-    /// on the compression ratio and internal buffer size.
+    /// - Returns: how many bytes of `chunk` were consumed
     @discardableResult
     mutating func decompress(
         _ chunk: Span<UInt8>,
@@ -40,14 +39,17 @@ public protocol StreamingDecompressor: ~Copyable, Sendable {
 extension StreamingDecompressor where Self: ~Copyable {
     public static var outputBufferSize: Int { 32 * 1024 }
 
+    /// Decompress `chunk`, calling a throwing `handler` with each piece of output.
+    ///
+    /// /// - Returns: how many bytes of `chunk` were consumed
     @discardableResult
     public mutating func decompress(
         _ chunk: Span<UInt8>,
-        handler: (Span<UInt8>) throws(Failure) -> Void
-    ) throws(Failure) -> Int {
+        handler: (Span<UInt8>) throws -> Void
+    ) throws -> Int {
         var consumed = 0
         var hasStoppedOnFullOutput = true
-        try withTemporaryAllocation(of: UInt8.self, capacity: Self.outputBufferSize) { output throws(Failure) in
+        try withTemporaryAllocation(of: UInt8.self, capacity: Self.outputBufferSize) { output throws in
             repeat {
                 consumed += try decompress(chunk.extracting(consumed...), into: &output)
                 hasStoppedOnFullOutput = output.freeCapacity == 0
@@ -57,6 +59,29 @@ extension StreamingDecompressor where Self: ~Copyable {
                 }
             } while (hasStoppedOnFullOutput || consumed < chunk.count) && !isFinished
         }
+        return consumed
+    }
+
+    /// Decompress `chunk` and append the output to `output`.
+    ///
+    /// If this throws, `output` may hold up to one `outputBufferSize` of bytes
+    /// past `maxDecompressedSize`, so discard it.
+    ///
+    /// - Returns: how many bytes of `chunk` were consumed
+    @discardableResult
+    package mutating func decompress(
+        _ chunk: Span<UInt8>,
+        appendingTo output: inout [UInt8]
+    ) throws(Failure) -> Int {
+        var consumed = 0
+        var hasStoppedOnFullOutput = true
+        repeat {
+            let spare = min(output.capacity - output.count, Self.outputBufferSize)
+            try output.append(addingCapacity: spare > 0 ? spare : Self.outputBufferSize) { tail throws(Failure) in
+                consumed += try decompress(chunk.extracting(consumed...), into: &tail)
+                hasStoppedOnFullOutput = tail.freeCapacity == 0
+            }
+        } while (hasStoppedOnFullOutput || consumed < chunk.count) && !isFinished
         return consumed
     }
 }

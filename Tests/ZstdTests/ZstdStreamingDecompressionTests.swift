@@ -204,7 +204,7 @@ struct ZstdStreamingDecompressionTests {
         )
 
         var decompressed = [UInt8]()
-        var thrown: Zstd.Error?
+        var thrown: (any Error)?
         let chunkSize = 16
 
         for start in stride(from: 0, to: compressed.count, by: chunkSize) {
@@ -219,7 +219,7 @@ struct ZstdStreamingDecompressionTests {
             }
         }
 
-        #expect(thrown == .maxDecompressedSizeExceeded)
+        #expect(thrown as? Zstd.Error == .maxDecompressedSizeExceeded)
         #expect(decompressed.count <= 50_000)
     }
 

@@ -143,6 +143,37 @@ struct DeflateStreamingDecompressionTests {
             }
         }
     }
+
+    @Test("Appending to an array round-trips across chunks and keeps earlier bytes")
+    func appendingRoundTrips() throws {
+        let input = pseudoRandomBytes(count: 300_000)
+        let compressed = try Deflate.Compressor().compress(input)
+        var decompressor = Deflate.StreamingDecompressor()
+        var output: [UInt8] = [0xAB]
+        for start in stride(from: 0, to: compressed.count, by: 1_000) {
+            let end = min(start + 1_000, compressed.count)
+            try decompressor.decompress(compressed.span.extracting(start..<end), appendingTo: &output)
+        }
+        let finished = decompressor.isFinished
+        #expect(finished)
+        #expect(output == [0xAB] + input)
+    }
+
+    @Test("A throwing handler stops decompression and its error is rethrown")
+    func throwingClosureStopsAndRethrows() throws {
+        struct WriteError: Error {}
+
+        let compressed = try Deflate.Compressor().compress([UInt8](repeating: 0, count: 1 << 20))
+        var decompressor = Deflate.StreamingDecompressor()
+        var calls = 0
+        #expect(throws: WriteError.self) {
+            try decompressor.decompress(compressed.span) { _ in
+                calls += 1
+                throw WriteError()
+            }
+        }
+        #expect(calls == 1)
+    }
 }
 
 @Suite("Stream Termination")

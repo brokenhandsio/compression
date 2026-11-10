@@ -42,14 +42,17 @@ public protocol StreamingCompressor: ~Copyable, Sendable {
 extension StreamingCompressor where Self: ~Copyable {
     public static var outputBufferSize: Int { 32 * 1024 }
 
-    /// Compress `chunk` into the provided `OutputSpan`.
+    /// Compress `chunk` and call `handler` with the compressed result.
+    ///
+    /// If the `handler` throws, the stream can't continue.
+    /// Call `reset()` before using it again.
     public mutating func compress(
         _ chunk: Span<UInt8>,
-        handler: (Span<UInt8>) throws(Failure) -> Void
-    ) throws(Failure) {
+        handler: (Span<UInt8>) throws -> Void
+    ) throws {
         var consumed = 0
         var hasStoppedOnFullOutput: Bool = true
-        try withTemporaryAllocation(of: UInt8.self, capacity: Self.outputBufferSize) { output throws(Failure) in
+        try withTemporaryAllocation(of: UInt8.self, capacity: Self.outputBufferSize) { output in
             repeat {
                 consumed += try compress(chunk.extracting(consumed...), into: &output)
                 hasStoppedOnFullOutput = output.isFull
@@ -63,12 +66,13 @@ extension StreamingCompressor where Self: ~Copyable {
 
     /// Emit all pending compressed data without ending the stream.
     ///
-    /// The handler may be called zero or more times.
+    /// If the `handler` throws, the stream can't continue.
+    /// Call `reset()` before using it again.
     public mutating func flush(
-        handler: (Span<UInt8>) throws(Failure) -> Void
-    ) throws(Failure) {
+        handler: (Span<UInt8>) throws -> Void
+    ) throws {
         var isFlushed = false
-        try withTemporaryAllocation(of: UInt8.self, capacity: Self.outputBufferSize) { output throws(Failure) in
+        try withTemporaryAllocation(of: UInt8.self, capacity: Self.outputBufferSize) { output in
             repeat {
                 isFlushed = try flush(into: &output)
                 if !output.isEmpty {
@@ -81,12 +85,13 @@ extension StreamingCompressor where Self: ~Copyable {
 
     /// Flush any remaining compressed data and finalize the stream.
     ///
-    /// The handler may be called zero or more times.
+    /// If the `handler` throws, the stream can't continue.
+    /// Call `reset()` before using it again.
     public mutating func finish(
-        handler: (Span<UInt8>) throws(Failure) -> Void
-    ) throws(Failure) {
+        handler: (Span<UInt8>) throws -> Void
+    ) throws {
         var isFinished = false
-        try withTemporaryAllocation(of: UInt8.self, capacity: Self.outputBufferSize) { output throws(Failure) in
+        try withTemporaryAllocation(of: UInt8.self, capacity: Self.outputBufferSize) { output in
             repeat {
                 isFinished = try finish(into: &output)
                 if !output.isEmpty {
