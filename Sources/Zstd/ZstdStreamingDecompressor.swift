@@ -14,6 +14,9 @@ extension Zstd: StreamingDecompressionAlgorithm {
         var decompressedBytesCount: Int
 
         @usableFromInline
+        var hasStoredOutput: Bool
+
+        @usableFromInline
         var _isFinished: Bool
         /// True once end-of-stream has been observed.
         /// Resets to `false` when a concatenated stream starts a new member.
@@ -28,6 +31,7 @@ extension Zstd: StreamingDecompressionAlgorithm {
             self.configuration = configuration
             self.decompressedBytesCount = 0
             self._isFinished = false
+            self.hasStoredOutput = false
 
             self.stream = .decompression()
             unsafe Zstd.preconditionCheck(ZSTD_DCtx_setParameter(stream.value, ZSTD_d_windowLogMax, configuration.effectiveWindowLogMax))
@@ -38,15 +42,20 @@ extension Zstd: StreamingDecompressionAlgorithm {
         }
 
         @inlinable
-        public mutating func decompress(_ chunk: Span<UInt8>, into output: inout OutputSpan<UInt8>) throws(Zstd.Error) -> Int {
+        public mutating func decompress(_ chunk: Span<UInt8>, into output: inout OutputSpan<UInt8>) throws(Zstd.Error) -> StreamStep {
             var consumed = 0
-            var again = true
 
-            while again {
+            while true {
                 // Nowhere to write, return so we get a new buffer
-                if output.isFull { return consumed }
+                if output.isFull {
+                    self.hasStoredOutput = true
+                    return .init(consumed: consumed, status: .outputIsFull)
+                }
                 // Nothing to compress, request more data
-                if chunk.extracting(consumed...).isEmpty { return consumed }
+                if chunk.extracting(consumed...).isEmpty && (!self.hasStoredOutput || self._isFinished) {
+                    return .init(consumed: consumed, status: self._isFinished ? .finished : .awaitingInput)
+                }
+                self.hasStoredOutput = false
 
                 // We got new bytes and a place to write them:
                 // we're not done even if we were before, but check if the policy allows it
@@ -54,7 +63,7 @@ extension Zstd: StreamingDecompressionAlgorithm {
                     switch self.configuration.trailingDataPolicy {
                     case .concatenate: self._isFinished = false
                     case .reject: throw .unexpectedTrailingData
-                    case .stop: return consumed
+                    case .stop: return .init(consumed: consumed, status: .finished)
                     }
                 }
 
@@ -73,7 +82,10 @@ extension Zstd: StreamingDecompressionAlgorithm {
                     return result
                 }
                 // Nowhere to write: return so the caller can drain the buffer
-                guard let result else { return consumed }
+                guard let result else {
+                    self.hasStoredOutput = true
+                    return .init(consumed: consumed, status: .outputIsFull)
+                }
 
                 try Zstd.check(result.status)
                 consumed += result.consumed
@@ -99,7 +111,7 @@ extension Zstd: StreamingDecompressionAlgorithm {
                             }
                         }
 
-                        return consumed
+                        return .init(consumed: consumed, status: .finished)
                     }
 
                     // Not quite done yet: there's more data in the input
@@ -119,22 +131,25 @@ extension Zstd: StreamingDecompressionAlgorithm {
                             }
                         }
 
-                        return consumed
+                        return .init(consumed: consumed, status: .finished)
 
                     case .concatenate:
                         // If we want to concatenate frames, continue
-                        again = true
                         self._isFinished = false
                     }
                 }
-            }
 
-            return consumed
+                // Room left and no frame end: zstd used all the input and wrote everything it had
+                if consumed == chunk.count, !output.isFull {
+                    return .init(consumed: consumed, status: .awaitingInput)
+                }
+            }
         }
 
         @inlinable
         public mutating func reset() {
             unsafe ZSTD_DCtx_reset(self.stream.value, ZSTD_reset_session_only)
+            self.hasStoredOutput = false
             self._isFinished = false
             self.decompressedBytesCount = 0
         }

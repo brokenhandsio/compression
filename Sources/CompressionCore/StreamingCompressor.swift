@@ -18,19 +18,25 @@ public protocol StreamingCompressor: ~Copyable, Sendable {
     mutating func compress(
         _ chunk: Span<UInt8>,
         into output: inout OutputSpan<UInt8>
-    ) throws(Failure) -> Int
+    ) throws(Failure) -> StreamStep
 
     /// Flush any remaining compressed data.
+    ///
+    /// - Returns: `.awaitingInput` once everything is written, or `.outputIsFull`
+    ///   if `output` ran out of room: drain it and call again.
     @discardableResult
     mutating func flush(
         into output: inout OutputSpan<UInt8>
-    ) throws(Failure) -> Bool
+    ) throws(Failure) -> StreamStep.Status
 
     /// Flush any remaining compressed data and finalize the stream.
+    ///
+    /// - Returns: `.finished` once the stream is complete, or `.outputIsFull`
+    ///   if `output` ran out of room: drain it and call again.
     @discardableResult
     mutating func finish(
         into output: inout OutputSpan<UInt8>
-    ) throws(Failure) -> Bool
+    ) throws(Failure) -> StreamStep.Status
 
     /// Discard all stream state and start over, keeping `configuration`.
     ///
@@ -51,16 +57,17 @@ extension StreamingCompressor where Self: ~Copyable {
         handler: (Span<UInt8>) throws -> Void
     ) throws {
         var consumed = 0
-        var hasStoppedOnFullOutput: Bool = true
+        var status: StreamStep.Status = .outputIsFull
         try withTemporaryAllocation(of: UInt8.self, capacity: Self.outputBufferSize) { output in
             repeat {
-                consumed += try compress(chunk.extracting(consumed...), into: &output)
-                hasStoppedOnFullOutput = output.isFull
+                let result = try compress(chunk.extracting(consumed...), into: &output)
+                consumed += result.consumed
+                status = result.status
                 if !output.isEmpty {
                     try handler(output.span)
                     output.removeAll()
                 }
-            } while hasStoppedOnFullOutput || consumed < chunk.count
+            } while status == .outputIsFull
         }
     }
 
@@ -71,7 +78,7 @@ extension StreamingCompressor where Self: ~Copyable {
     public mutating func flush(
         handler: (Span<UInt8>) throws -> Void
     ) throws {
-        var isFlushed = false
+        var isFlushed: StreamStep.Status = .outputIsFull
         try withTemporaryAllocation(of: UInt8.self, capacity: Self.outputBufferSize) { output in
             repeat {
                 isFlushed = try flush(into: &output)
@@ -79,7 +86,7 @@ extension StreamingCompressor where Self: ~Copyable {
                     try handler(output.span)
                     output.removeAll()
                 }
-            } while !isFlushed
+            } while isFlushed == .outputIsFull
         }
     }
 
@@ -90,7 +97,7 @@ extension StreamingCompressor where Self: ~Copyable {
     public mutating func finish(
         handler: (Span<UInt8>) throws -> Void
     ) throws {
-        var isFinished = false
+        var isFinished: StreamStep.Status = .awaitingInput
         try withTemporaryAllocation(of: UInt8.self, capacity: Self.outputBufferSize) { output in
             repeat {
                 isFinished = try finish(into: &output)
@@ -98,7 +105,7 @@ extension StreamingCompressor where Self: ~Copyable {
                     try handler(output.span)
                     output.removeAll()
                 }
-            } while !isFinished
+            } while isFinished != .finished
         }
     }
 }
