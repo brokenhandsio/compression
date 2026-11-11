@@ -105,12 +105,5 @@ extension AsyncSequence {
     where Element: CompressibleInput {
         .init(backingSequence: self, configuration: configuration)
     }
-
-    public func decompressed<Algorithm: CompressionAlgorithm>(
-        using algorithm: Algorithm.Type
-    ) -> DecompressionAsyncSequence<Self, Algorithm>
-    where Element: CompressibleInput {
-        .init(backingSequence: self, configuration: .default)
-    }
 }
 #endif

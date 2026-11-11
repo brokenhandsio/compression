@@ -1,6 +1,6 @@
 import CompressionCore
-import Testing
 import CompressionZstd
+import Testing
 
 @Suite("Zstd Decompression Async Sequence")
 struct ZstdDecompressionAsyncSequenceTests {
@@ -8,13 +8,13 @@ struct ZstdDecompressionAsyncSequenceTests {
     func roundTrip() async throws {
         let data = Array(repeating: UInt8(0x61), count: 50_000)
 
-        let compressedStream = makeStream(for: data, chunkSize: 1024).compressed(using: Zstd.self)
+        let compressedStream = makeStream(for: data, chunkSize: 1024).compressed(using: .zstd())
         var compressed = [UInt8]()
         for try await chunk in compressedStream {
             compressed.append(contentsOf: chunk)
         }
 
-        let decompressedStream = makeStream(for: compressed, chunkSize: 1024).decompressed(using: Zstd.self)
+        let decompressedStream = makeStream(for: compressed, chunkSize: 1024).decompressed(using: .zstd())
         var output = [UInt8]()
         for try await chunk in decompressedStream {
             output.append(contentsOf: chunk)
@@ -29,13 +29,13 @@ struct ZstdDecompressionAsyncSequenceTests {
     func roundTripIncompressible() async throws {
         let data = pseudoRandomBytes(count: 1 << 20)
 
-        let compressedStream = makeStream(for: data, chunkSize: 4_096).compressed(using: Zstd.self)
+        let compressedStream = makeStream(for: data, chunkSize: 4_096).compressed(using: .zstd())
         var compressed = [UInt8]()
         for try await chunk in compressedStream {
             compressed.append(contentsOf: chunk)
         }
 
-        let decompressedStream = makeStream(for: compressed, chunkSize: 4_096).decompressed(using: Zstd.self)
+        let decompressedStream = makeStream(for: compressed, chunkSize: 4_096).decompressed(using: .zstd())
         var output = [UInt8]()
         for try await chunk in decompressedStream {
             output.append(contentsOf: chunk)
@@ -51,7 +51,7 @@ struct ZstdDecompressionAsyncSequenceTests {
         let data = [UInt8](repeating: 0, count: 1 << 22)  // 4MB of zeros
         let compressed = try Zstd.Compressor().compress(data)
 
-        let stream = makeStream(chunks: [compressed]).decompressed(using: Zstd.self)
+        let stream = makeStream(chunks: [compressed]).decompressed(using: .zstd())
         var output = [UInt8]()
         for try await chunk in stream {
             output.append(contentsOf: chunk)
@@ -67,7 +67,7 @@ struct ZstdDecompressionAsyncSequenceTests {
         let compressed = try Zstd.Compressor().compress(data)
         let truncated = Array(compressed[..<(compressed.count / 2)])
 
-        let stream = makeStream(for: truncated, chunkSize: 1024).decompressed(using: Zstd.self)
+        let stream = makeStream(for: truncated, chunkSize: 1024).decompressed(using: .zstd())
         await #expect {
             for try await _ in stream {}
         } throws: { error in
@@ -127,7 +127,7 @@ struct ZstdDecompressionAsyncSequenceTests {
         let compressor = Zstd.Compressor()
 
         let stream = makeStream(chunks: [try compressor.compress(first), try compressor.compress(second)])
-            .decompressed(using: Zstd.self)
+            .decompressed(using: .zstd())
         var output = [UInt8]()
         for try await chunk in stream {
             output.append(contentsOf: chunk)
@@ -143,7 +143,7 @@ struct ZstdDecompressionAsyncSequenceTests {
         let compressor = Zstd.Compressor()
         let chunk = try compressor.compress(first) + (try compressor.compress(second))
 
-        let stream = makeStream(chunks: [chunk]).decompressed(using: Zstd.self)
+        let stream = makeStream(chunks: [chunk]).decompressed(using: .zstd())
         var output = [UInt8]()
         for try await chunk in stream {
             output.append(contentsOf: chunk)
@@ -154,13 +154,13 @@ struct ZstdDecompressionAsyncSequenceTests {
 
     @Test("An empty source produces an empty stream rather than a frame")
     func emptySourceCompresses() async throws {
-        let compressedStream = makeStream(chunks: [[UInt8]()]).compressed(using: Zstd.self)
+        let compressedStream = makeStream(chunks: [[UInt8]()]).compressed(using: .zstd())
         var compressed = [UInt8]()
         for try await chunk in compressedStream {
             compressed.append(contentsOf: chunk)
         }
 
-        let stream = makeStream(chunks: [compressed]).decompressed(using: Zstd.self)
+        let stream = makeStream(chunks: [compressed]).decompressed(using: .zstd())
         var output = [UInt8]()
         for try await chunk in stream {
             output.append(contentsOf: chunk)
