@@ -97,11 +97,16 @@ public struct CompressionAsyncSequence<
 }
 
 extension AsyncSequence where Element: CompressibleInput {
-    public func compressed<Algorithm: CompressionAlgorithm>(
-        using algorithm: Algorithm.Type,
-        configuration: Algorithm.CompressionConfiguration = .default
-    ) -> CompressionAsyncSequence<Self, Algorithm> {
+    public func compressed<Configuration: CompressionParameters>(
+        using configuration: Configuration
+    ) -> CompressionAsyncSequence<Self, Configuration.Algorithm> {
         .init(backingSequence: self, configuration: configuration)
+    }
+
+    public func compressed<Algorithm: CompressionAlgorithm>(
+        using algorithm: Algorithm.Type
+    ) -> CompressionAsyncSequence<Self, Algorithm> {
+        .init(backingSequence: self, configuration: .default)
     }
 }
 #endif

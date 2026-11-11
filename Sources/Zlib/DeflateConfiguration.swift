@@ -1,8 +1,65 @@
 import CZlib
 import CompressionCore
 
+extension CompressionParameters where Self == Deflate.CompressionConfiguration {
+    /// zlib framing (RFC 1950). Suitable for general use, PNG, and HTTP `Content-Encoding: deflate`.
+    public static func zlib(
+        level: Deflate.Level = .default,
+        memory: Deflate.MemoryUsage = .default,
+        strategy: Deflate.Strategy = .default
+    ) -> Self {
+        .init(level: level, format: .zlib, memory: memory, strategy: strategy)
+    }
+
+    /// gzip framing (RFC 1952). Suitable for HTTP `Content-Encoding: gzip`.
+    public static func gzip(
+        level: Deflate.Level = .default,
+        memory: Deflate.MemoryUsage = .default,
+        strategy: Deflate.Strategy = .default
+    ) -> Self {
+        .init(level: level, format: .gzip, memory: memory, strategy: strategy)
+    }
+
+    /// Raw deflate (RFC 1951), no header or checksum. Suitable for ZIP and other containers with their own framing.
+    public static func rawDeflate(
+        level: Deflate.Level = .default,
+        memory: Deflate.MemoryUsage = .default,
+        strategy: Deflate.Strategy = .default
+    ) -> Self {
+        .init(level: level, format: .raw, memory: memory, strategy: strategy)
+    }
+}
+
+extension DecompressionParameters where Self == Deflate.DecompressionConfiguration {
+    /// zlib framing (RFC 1950).
+    public static func zlib(
+        maxDecompressedSize: Int? = nil,
+        trailingDataPolicy: TrailingDataPolicy = .reject
+    ) -> Self {
+        .init(format: .zlib, maxDecompressedSize: maxDecompressedSize, trailingDataPolicy: trailingDataPolicy)
+    }
+
+    /// gzip framing (RFC 1952). Concatenated members decode in turn by default.
+    public static func gzip(
+        maxDecompressedSize: Int? = nil,
+        trailingDataPolicy: TrailingDataPolicy = .concatenate
+    ) -> Self {
+        .init(format: .gzip, maxDecompressedSize: maxDecompressedSize, trailingDataPolicy: trailingDataPolicy)
+    }
+
+    /// Raw deflate (RFC 1951), no header or checksum.
+    public static func rawDeflate(
+        maxDecompressedSize: Int? = nil,
+        trailingDataPolicy: TrailingDataPolicy = .reject
+    ) -> Self {
+        .init(format: .raw, maxDecompressedSize: maxDecompressedSize, trailingDataPolicy: trailingDataPolicy)
+    }
+}
+
 extension Deflate {
     public struct CompressionConfiguration: CompressionParameters {
+        public typealias Algorithm = Deflate
+
         public var level: Level
         public var format: Format
         public var memory: MemoryUsage
@@ -29,17 +86,11 @@ extension Deflate {
 
         /// zlib framing, default level. Suitable for general use.
         public static let `default` = Self()
-        /// gzip framing, default level. Suitable for HTTP `Content-Encoding: gzip`.
-        public static let gzip = Self(format: .gzip)
-        /// Raw deflate, no framing. Suitable for ZIP, PNG, etc.
-        public static let raw = Self(format: .raw)
-        /// Fastest compression (level 1, high memory). Prioritises CPU over ratio.
-        public static let fast = Self(level: .fastest, memory: .high)
-        /// Best compression (level 9). Prioritises ratio over CPU.
-        public static let best = Self(level: .best)
     }
 
     public struct DecompressionConfiguration: DecompressionParameters {
+        public typealias Algorithm = Deflate
+
         /// Deflate format.
         public var format: Format
         /// Maximum amount of data we allow to be decompressed.
@@ -66,7 +117,6 @@ extension Deflate {
         }
 
         public static let `default` = Self()
-        public static let gzip = Self(format: .gzip, trailingDataPolicy: .concatenate)
     }
 }
 

@@ -168,12 +168,8 @@ struct FormatRoundTripCase: Sendable, CustomStringConvertible {
 
 let formatRoundTripCases: [FormatRoundTripCase] = [
     .init(name: "zlib/default", compress: .default, decompress: .default),
-    .init(name: "gzip", compress: .gzip, decompress: .gzip),
-    .init(
-        name: "raw",
-        compress: Deflate.CompressionConfiguration(format: .raw),
-        decompress: .init(format: .raw)
-    ),
-    .init(name: "zlib/fast", compress: .fast, decompress: .default),
-    .init(name: "zlib/best", compress: .best, decompress: .default),
+    .init(name: "gzip", compress: .gzip(), decompress: .gzip()),
+    .init(name: "raw", compress: .rawDeflate(), decompress: .rawDeflate()),
+    .init(name: "zlib/fast", compress: .zlib(level: .fastest, memory: .high), decompress: .zlib()),
+    .init(name: "zlib/best", compress: .zlib(level: .best), decompress: .zlib()),
 ]

@@ -41,13 +41,13 @@ func silesiaBenchmarks() {
 
     Benchmark("Compress/zlib/speed/dickens") { benchmark in
         for _ in benchmark.scaledIterations {
-            blackHole(try Deflate.Compressor(configuration: .fast).compress(dickens))
+            blackHole(try Deflate.Compressor(configuration: .zlib(level: .fastest, memory: .high)).compress(dickens))
         }
     }
 
     Benchmark("Compress/zlib/best/dickens") { benchmark in
         for _ in benchmark.scaledIterations {
-            blackHole(try Deflate.Compressor(configuration: .best).compress(dickens))
+            blackHole(try Deflate.Compressor(configuration: .zlib(level: .best)).compress(dickens))
         }
     }
 
@@ -59,13 +59,13 @@ func silesiaBenchmarks() {
 
     Benchmark("Compress/zlib/speed/mozilla") { benchmark in
         for _ in benchmark.scaledIterations {
-            blackHole(try Deflate.Compressor(configuration: .fast).compress(mozilla))
+            blackHole(try Deflate.Compressor(configuration: .zlib(level: .fastest, memory: .high)).compress(mozilla))
         }
     }
 
     Benchmark("Compress/zlib/best/mozilla") { benchmark in
         for _ in benchmark.scaledIterations {
-            blackHole(try Deflate.Compressor(configuration: .best).compress(mozilla))
+            blackHole(try Deflate.Compressor(configuration: .zlib(level: .best)).compress(mozilla))
         }
     }
 
@@ -77,13 +77,13 @@ func silesiaBenchmarks() {
 
     Benchmark("Compress/zlib/speed/x-ray") { benchmark in
         for _ in benchmark.scaledIterations {
-            blackHole(try Deflate.Compressor(configuration: .fast).compress(xray))
+            blackHole(try Deflate.Compressor(configuration: .zlib(level: .fastest, memory: .high)).compress(xray))
         }
     }
 
     Benchmark("Compress/zlib/best/x-ray") { benchmark in
         for _ in benchmark.scaledIterations {
-            blackHole(try Deflate.Compressor(configuration: .best).compress(xray))
+            blackHole(try Deflate.Compressor(configuration: .zlib(level: .best)).compress(xray))
         }
     }
 

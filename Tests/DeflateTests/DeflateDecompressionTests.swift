@@ -43,11 +43,10 @@ struct DeflateDecompressionTests {
         // gzip defaults to concatenated-member support, so trailing bytes are
         // parsed as the next member's header and fail as corrupt.
         let input = Array("complete stream".utf8)
-        let compressed =
-            try Deflate.Compressor(configuration: .gzip).compress(input) + [0xDE, 0xAD, 0xBE, 0xEF]
+        let compressed = try Deflate.Compressor(configuration: .gzip()).compress(input) + [0xDE, 0xAD, 0xBE, 0xEF]
 
         #expect(throws: Deflate.Error.corruptData) {
-            _ = try Deflate.Decompressor(configuration: .gzip).decompress(compressed)
+            _ = try Deflate.Decompressor(configuration: .gzip()).decompress(compressed)
         }
     }
 
@@ -55,10 +54,10 @@ struct DeflateDecompressionTests {
     func concatenatedGzipMembers() throws {
         let first = Array("first member, ".utf8)
         let second = Array("second member".utf8)
-        let compressor = Deflate.Compressor(configuration: .gzip)
+        let compressor = Deflate.Compressor(configuration: .gzip())
         let compressed = try compressor.compress(first) + compressor.compress(second)
 
-        let output = try Deflate.Decompressor(configuration: .gzip).decompress(compressed)
+        let output = try Deflate.Decompressor(configuration: .gzip()).decompress(compressed)
         #expect(output == first + second)
     }
 }

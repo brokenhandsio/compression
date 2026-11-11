@@ -89,7 +89,7 @@ struct ZstdDecompressionAsyncSequenceTests {
 
         let configuration = Zstd.DecompressionConfiguration(trailingDataPolicy: .stop)
         let stream = makeStream(for: compressed + trailingData, chunkSize: 1024)
-            .decompressed(using: Zstd.self, configuration: configuration)
+            .decompressed(using: configuration)
         var output = [UInt8]()
         for try await chunk in stream {
             output.append(contentsOf: chunk)
@@ -106,7 +106,7 @@ struct ZstdDecompressionAsyncSequenceTests {
 
         let configuration = Zstd.DecompressionConfiguration(trailingDataPolicy: .reject)
         let stream = makeStream(chunks: [chunk])
-            .decompressed(using: Zstd.self, configuration: configuration)
+            .decompressed(using: configuration)
         await #expect {
             for try await _ in stream {}
         } throws: { error in
@@ -220,6 +220,23 @@ struct ZstdDecompressionAsyncSequenceTests {
         stride(from: 0, to: bytes.count, by: size).map {
             Array(bytes[$0..<min($0 + size, bytes.count)])
         }
+    }
+
+    @Test("zstd presets resolve from the configuration alone")
+    func zstdPresetRoundTrip() async throws {
+        let data = Array(repeating: UInt8(0x61), count: 50_000)
+
+        var compressed = [UInt8]()
+        for try await chunk in makeStream(for: data, chunkSize: 1024).compressed(using: .zstd(level: .best)) {
+            compressed.append(contentsOf: chunk)
+        }
+        #expect(compressed.prefix(4) == [0x28, 0xB5, 0x2F, 0xFD])  // zstd magic
+
+        var output = [UInt8]()
+        for try await chunk in makeStream(for: compressed, chunkSize: 1024).decompressed(using: .zstd()) {
+            output.append(contentsOf: chunk)
+        }
+        #expect(output == data)
     }
 
     private func makeStream(chunks: [[UInt8]]) -> AsyncStream<[UInt8]> {

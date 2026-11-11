@@ -99,12 +99,18 @@ public struct DecompressionAsyncSequence<
 }
 
 extension AsyncSequence {
-    public func decompressed<Algorithm: CompressionAlgorithm>(
-        using algorithm: Algorithm.Type,
-        configuration: Algorithm.DecompressionConfiguration = .default
-    ) -> DecompressionAsyncSequence<Self, Algorithm>
+    public func decompressed<Configuration: DecompressionParameters>(
+        using configuration: Configuration
+    ) -> DecompressionAsyncSequence<Self, Configuration.Algorithm>
     where Element: CompressibleInput {
         .init(backingSequence: self, configuration: configuration)
+    }
+
+    public func decompressed<Algorithm: CompressionAlgorithm>(
+        using algorithm: Algorithm.Type
+    ) -> DecompressionAsyncSequence<Self, Algorithm>
+    where Element: CompressibleInput {
+        .init(backingSequence: self, configuration: .default)
     }
 }
 #endif
