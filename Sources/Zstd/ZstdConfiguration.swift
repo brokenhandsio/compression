@@ -12,7 +12,7 @@ extension CompressionParameters where Self == Zstd.CompressionConfiguration {
 }
 
 extension DecompressionParameters where Self == Zstd.DecompressionConfiguration {
-    /// zstd framing (RFC 8878). Concatenated frames decode in turn by default.
+    /// zstd framing (RFC 8878).
     public static func zstd(
         windowLogMax: Int? = nil,
         maxDecompressedSize: Int? = nil,

@@ -78,8 +78,8 @@ extension Zstd: StreamingDecompressionAlgorithm {
                 try Zstd.check(result.status)
                 consumed += result.consumed
 
-                decompressedBytesCount += result.produced
-                if let max = configuration.maxDecompressedSize, decompressedBytesCount > max {
+                self.decompressedBytesCount += result.produced
+                if let max = configuration.maxDecompressedSize, self.decompressedBytesCount > max {
                     throw .maxDecompressedSizeExceeded
                 }
 
@@ -89,13 +89,18 @@ extension Zstd: StreamingDecompressionAlgorithm {
                         preconditionFailure("This should be impossible: we cannot have consumed more bytes than the input has")
                     }
 
-                    // We really are done
+                    // We're done with the current frame
                     if consumed == chunk.count {
                         self._isFinished = true
-
-                        if let expectedContentSize = configuration.expectedContentSize {
-                            guard decompressedBytesCount == expectedContentSize else {
-                                throw .contentSizeMismatch(expected: expectedContentSize, actual: decompressedBytesCount)
+                        if let expectedContentSize = self.configuration.expectedContentSize,
+                            self.decompressedBytesCount != expectedContentSize
+                        {
+                            // If we expect concatenation, we might not be done,
+                            // and the `expectedContentSize` might refer to the total size and not the single frame's
+                            if self.configuration.trailingDataPolicy == .concatenate, self.decompressedBytesCount < expectedContentSize {
+                                self._isFinished = false
+                            } else {
+                                throw .contentSizeMismatch(expected: expectedContentSize, actual: self.decompressedBytesCount)
                             }
                         }
 

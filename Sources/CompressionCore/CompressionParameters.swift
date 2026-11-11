@@ -1,17 +1,11 @@
 /// Algorithm-specific compression tuning. Each algorithm defines its own configuration types.
 public protocol CompressionParameters: Sendable {
     associatedtype Algorithm: CompressionAlgorithm where Algorithm.CompressionConfiguration == Self
-
-    /// Sensible defaults for general use.
-    static var `default`: Self { get }
 }
 
 /// Algorithm-specific decompression tuning. Each algorithm defines its own configuration types.
 public protocol DecompressionParameters: Sendable {
     associatedtype Algorithm: CompressionAlgorithm where Algorithm.DecompressionConfiguration == Self
-
-    /// Sensible defaults for general use.
-    static var `default`: Self { get }
 
     /// Maximum amount of data we allow to be decompressed.
     /// This protects against decompression bombs.

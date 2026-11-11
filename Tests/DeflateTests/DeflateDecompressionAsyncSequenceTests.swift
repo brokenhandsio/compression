@@ -7,13 +7,13 @@ struct DeflateDecompressionAsyncSequenceTests {
     func roundTrip() async throws {
         let data = Array(repeating: UInt8(0x61), count: 50_000)
 
-        let compressedStream = makeStream(for: data, chunkSize: 1024).compressed(using: Deflate.self)
+        let compressedStream = makeStream(for: data, chunkSize: 1024).compressed(using: .zlib())
         var compressed = [UInt8]()
         for try await chunk in compressedStream {
             compressed.append(contentsOf: chunk)
         }
 
-        let decompressedStream = makeStream(for: compressed, chunkSize: 1024).decompressed(using: Deflate.self)
+        let decompressedStream = makeStream(for: compressed, chunkSize: 1024).decompressed(using: .zlib())
         var output = [UInt8]()
         for try await chunk in decompressedStream {
             output.append(contentsOf: chunk)
@@ -28,7 +28,7 @@ struct DeflateDecompressionAsyncSequenceTests {
         let compressed = try Deflate.Compressor().compress(data)
         let truncated = Array(compressed[..<(compressed.count / 2)])
 
-        let stream = makeStream(for: truncated, chunkSize: 1024).decompressed(using: Deflate.self)
+        let stream = makeStream(for: truncated, chunkSize: 1024).decompressed(using: .zlib())
         await #expect {
             for try await _ in stream {}
         } throws: { error in
@@ -77,7 +77,7 @@ struct DeflateDecompressionAsyncSequenceTests {
         let compressed = try Deflate.Compressor().compress(Array("complete stream".utf8))
 
         let stream = makeStream(chunks: [compressed, [0xDE, 0xAD, 0xBE, 0xEF]])
-            .decompressed(using: Deflate.self)
+            .decompressed(using: .zlib())
         await #expect {
             for try await _ in stream {}
         } throws: { error in
