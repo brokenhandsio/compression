@@ -47,7 +47,7 @@ struct DeflateDecompressionAsyncSequenceTests {
 
         let configuration = Deflate.DecompressionConfiguration(trailingDataPolicy: .stop)
         let stream = makeStream(for: compressed + trailingData, chunkSize: 1024)
-            .decompressed(using: Deflate.self, configuration: configuration)
+            .decompressed(using: configuration)
         var output = [UInt8]()
         for try await chunk in stream {
             output.append(contentsOf: chunk)
@@ -63,7 +63,7 @@ struct DeflateDecompressionAsyncSequenceTests {
 
         let configuration = Deflate.DecompressionConfiguration(trailingDataPolicy: .stop)
         let stream = makeStream(chunks: [compressed, [0xDE, 0xAD, 0xBE, 0xEF]])
-            .decompressed(using: Deflate.self, configuration: configuration)
+            .decompressed(using: configuration)
         var output = [UInt8]()
         for try await chunk in stream {
             output.append(contentsOf: chunk)
@@ -95,16 +95,33 @@ struct DeflateDecompressionAsyncSequenceTests {
     func concatenatedGzipMembersInSeparateChunks() async throws {
         let first = Array("first member, ".utf8)
         let second = Array("second member".utf8)
-        let compressor = Deflate.Compressor(configuration: .gzip)
+        let compressor = Deflate.Compressor(configuration: .gzip())
 
         let stream = makeStream(chunks: [try compressor.compress(first), try compressor.compress(second)])
-            .decompressed(using: Deflate.self, configuration: .gzip)
+            .decompressed(using: .gzip())
         var output = [UInt8]()
         for try await chunk in stream {
             output.append(contentsOf: chunk)
         }
 
         #expect(output == first + second)
+    }
+
+    @Test("gzip presets resolve from the configuration alone")
+    func gzipPresetRoundTrip() async throws {
+        let data = Array(repeating: UInt8(0x61), count: 50_000)
+
+        var compressed = [UInt8]()
+        for try await chunk in makeStream(for: data, chunkSize: 1024).compressed(using: .gzip(level: .best)) {
+            compressed.append(contentsOf: chunk)
+        }
+        #expect(compressed.prefix(2) == [0x1F, 0x8B])  // gzip magic
+
+        var output = [UInt8]()
+        for try await chunk in makeStream(for: compressed, chunkSize: 1024).decompressed(using: .gzip()) {
+            output.append(contentsOf: chunk)
+        }
+        #expect(output == data)
     }
 
     private func makeStream(chunks: [[UInt8]]) -> AsyncStream<[UInt8]> {

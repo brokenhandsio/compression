@@ -196,10 +196,10 @@ struct StreamTerminationTests {
     func concatenatedGzipMembersChunked() throws {
         let first = Array("first member, ".utf8)
         let second = Array("second member".utf8)
-        let compressor = Deflate.Compressor(configuration: .gzip)
+        let compressor = Deflate.Compressor(configuration: .gzip())
         let compressed = try compressor.compress(first) + compressor.compress(second)
 
-        var decompressor = Deflate.StreamingDecompressor(configuration: .gzip)
+        var decompressor = Deflate.StreamingDecompressor(configuration: .gzip())
         var output = [UInt8]()
         for byte in compressed {
             try decompressor.decompress([byte].span) { chunk in
@@ -336,15 +336,7 @@ struct StreamTerminationTests {
 
 /// Formats decompressed with `.stop`. Bytes after the actual stream are left unconsumed.
 let trailingDataFormatCases: [FormatRoundTripCase] = [
-    .init(name: "zlib", compress: .default, decompress: .init(trailingDataPolicy: .stop)),
-    .init(
-        name: "gzip",
-        compress: .gzip,
-        decompress: .init(format: .gzip, trailingDataPolicy: .stop)
-    ),
-    .init(
-        name: "raw",
-        compress: Deflate.CompressionConfiguration(format: .raw),
-        decompress: .init(format: .raw, trailingDataPolicy: .stop)
-    ),
+    .init(name: "zlib", compress: .zlib(), decompress: .zlib(trailingDataPolicy: .stop)),
+    .init(name: "gzip", compress: .gzip(), decompress: .gzip(trailingDataPolicy: .stop)),
+    .init(name: "raw", compress: .rawDeflate(), decompress: .rawDeflate(trailingDataPolicy: .stop)),
 ]
