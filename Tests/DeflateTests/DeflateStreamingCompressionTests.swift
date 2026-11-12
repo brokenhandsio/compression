@@ -138,7 +138,7 @@ struct DeflateStreamingCompressorTests {
 
         while consumed < input.count {
             output += try [UInt8](capacity: 64) { outputSpan in
-                consumed += try compressor.compress(input.span.extracting(consumed...), into: &outputSpan)
+                consumed += try compressor.compress(input.span.extracting(consumed...), into: &outputSpan).consumed
             }
 
             if isFirstRound {
@@ -150,7 +150,7 @@ struct DeflateStreamingCompressorTests {
         var isFinished = false
         while !isFinished {
             output += try [UInt8](capacity: 64) { outputSpan in
-                isFinished = try compressor.finish(into: &outputSpan)
+                isFinished = try compressor.finish(into: &outputSpan) == .finished
             }
         }
 
