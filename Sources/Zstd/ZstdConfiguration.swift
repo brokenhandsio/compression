@@ -123,7 +123,9 @@ extension Zstd {
         }
 
         public var maxDecompressedSize: Int?
-        /// This won't have any effect if `trailingDataPolicy` is set to `concatenate`.
+        /// If set, throws when the size of the decompressed content is different.
+        /// If `trailingDataPolicy` is `.concatenate`, this will act on the whole content size,
+        /// not the single frame, and a smaller total doesn't throw.
         public var expectedContentSize: Int?
         /// This setting configures what to do when we encounter another member
         /// after we're done streaming the first one.

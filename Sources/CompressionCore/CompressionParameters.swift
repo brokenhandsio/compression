@@ -16,12 +16,14 @@ public protocol DecompressionParameters: Sendable {
 }
 
 /// Declares what to do when bytes are encountered after the end of stream.
+///
+/// Defaults to .concatenate for formats whose spec defines a series of streams (gzip, zstd), and to .reject otherwise.
 public enum TrailingDataPolicy: Sendable {
     /// Throw `.unexpectedTrailingData`.
     case reject
     /// Ignore them and return consumed input count.
     case stop
     /// We're expecting another member, keep decompressing.
-    /// Algorithms without multi-stream support treat this as `.reject`.
+    /// For zlib and raw deflate, the following bytes are decoded as a new stream. This is rarely what you want.
     case concatenate
 }
