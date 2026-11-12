@@ -15,10 +15,14 @@ extension Zstd: OneShotDecompressionAlgorithm {
 
                 if declared != ZSTD_CONTENTSIZE_UNKNOWN,
                     let capacity = Int(exactly: declared),
-                    configuration.trailingDataPolicy == .concatenate  // if we're not concatenating, go to the stream fallback
+                    self.configuration.trailingDataPolicy == .concatenate  // if we're not concatenating, go to the stream fallback
                 {
-                    if let max = configuration.maxDecompressedSize, capacity > max {
+                    if let max = self.configuration.maxDecompressedSize, capacity > max {
                         throw .maxDecompressedSizeExceeded
+                    }
+
+                    if let expectedContentSize = self.configuration.expectedContentSize, expectedContentSize != capacity {
+                        throw .contentSizeMismatch(expected: expectedContentSize, actual: capacity)
                     }
 
                     return try [UInt8](capacity: capacity) { output throws(Zstd.Error) in

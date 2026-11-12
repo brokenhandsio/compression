@@ -1,5 +1,5 @@
-import Testing
 import CompressionZstd
+import Testing
 
 @Suite("Zstd Streaming Decompression Tests")
 struct ZstdStreamingDecompressionTests {
@@ -258,7 +258,7 @@ struct ZstdStreamingDecompressionTests {
         let compressed = try Zstd.Compressor().compress(input)
 
         var decompressor = Zstd.StreamingDecompressor(
-            configuration: .init(expectedContentSize: expected)
+            configuration: .init(expectedContentSize: expected, trailingDataPolicy: .reject)
         )
 
         #expect(throws: Zstd.Error.contentSizeMismatch(expected: expected, actual: input.count)) {
@@ -452,7 +452,7 @@ struct ZstdStreamingDecompressionTests {
         let compressed = try Zstd.Compressor().compress(input)
 
         var decompressor = Zstd.StreamingDecompressor(
-            configuration: .init(expectedContentSize: expected)
+            configuration: .init(expectedContentSize: expected, trailingDataPolicy: .reject)
         )
 
         #expect(throws: Zstd.Error.contentSizeMismatch(expected: expected, actual: input.count)) {
@@ -479,11 +479,9 @@ struct ZstdStreamingDecompressionTests {
         #expect(decompressed == input)
 
         var mismatching = Zstd.StreamingDecompressor(
-            configuration: .init(expectedContentSize: input.count + 1)
+            configuration: .init(expectedContentSize: input.count + 1, trailingDataPolicy: .reject)
         )
-        #expect(
-            throws: Zstd.Error.contentSizeMismatch(expected: input.count + 1, actual: input.count)
-        ) {
+        #expect(throws: Zstd.Error.contentSizeMismatch(expected: input.count + 1, actual: input.count)) {
             try mismatching.decompress(compressed.span) { _ in }
         }
     }
