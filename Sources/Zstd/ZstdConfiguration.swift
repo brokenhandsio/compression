@@ -1,8 +1,37 @@
 import CZstd
 import CompressionCore
 
+extension CompressionParameters where Self == Zstd.CompressionConfiguration {
+    /// zstd framing (RFC 8878).
+    public static func zstd(
+        level: Zstd.CompressionConfiguration.Level = .default,
+        strategy: Zstd.CompressionConfiguration.Strategy = .auto
+    ) -> Self {
+        .init(strategy: strategy, level: level)
+    }
+}
+
+extension DecompressionParameters where Self == Zstd.DecompressionConfiguration {
+    /// zstd framing (RFC 8878).
+    public static func zstd(
+        windowLogMax: Int? = nil,
+        maxDecompressedSize: Int? = nil,
+        expectedContentSize: Int? = nil,
+        trailingDataPolicy: TrailingDataPolicy = .concatenate
+    ) -> Self {
+        .init(
+            windowLogMax: windowLogMax,
+            maxDecompressedSize: maxDecompressedSize,
+            expectedContentSize: expectedContentSize,
+            trailingDataPolicy: trailingDataPolicy
+        )
+    }
+}
+
 extension Zstd {
     public struct CompressionConfiguration: CompressionParameters {
+        public typealias Algorithm = Zstd
+
         /// How hard zstd looks for repeated data.
         @nonexhaustive public enum Strategy: Int, Sendable {
             case auto = 0
@@ -56,6 +85,8 @@ extension Zstd {
     }
 
     public struct DecompressionConfiguration: DecompressionParameters {
+        public typealias Algorithm = Zstd
+
         public static let `default` = Self()
 
         public init() {
@@ -92,7 +123,9 @@ extension Zstd {
         }
 
         public var maxDecompressedSize: Int?
-        /// This won't have any effect if `trailingDataPolicy` is set to `concatenate`.
+        /// If set, throws when the size of the decompressed content is different.
+        /// If `trailingDataPolicy` is `.concatenate`, this will act on the whole content size,
+        /// not the single frame, and a smaller total doesn't throw.
         public var expectedContentSize: Int?
         /// This setting configures what to do when we encounter another member
         /// after we're done streaming the first one.

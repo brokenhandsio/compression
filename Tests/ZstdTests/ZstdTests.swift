@@ -244,6 +244,13 @@ struct ZstdTests {
         #expect(frameContentSize(of: compressed) == size)
         #expect(try decompressor.decompress(compressed) == input)
     }
+
+    @Test func oneShotChecksExpectedContentSize() throws {
+        let frame = try Zstd.Compressor().compress(Array(repeating: UInt8(0x41), count: 10))
+        #expect(throws: Zstd.Error.contentSizeMismatch(expected: 5, actual: 10)) {
+            try Zstd.Decompressor(configuration: .zstd(expectedContentSize: 5)).decompress(frame)
+        }
+    }
 }
 
 extension Array {

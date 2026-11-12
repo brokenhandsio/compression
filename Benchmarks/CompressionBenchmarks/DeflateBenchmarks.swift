@@ -29,25 +29,25 @@ func deflateBenchmarks() {
 
     Benchmark("Compress/zlib/speed/1MB") { benchmark in
         for _ in benchmark.scaledIterations {
-            blackHole(try Deflate.Compressor(configuration: .fast).compress(compressible1MB))
+            blackHole(try Deflate.Compressor(configuration: .zlib(level: .fastest, memory: .high)).compress(compressible1MB))
         }
     }
 
     Benchmark("Compress/zlib/best/1MB") { benchmark in
         for _ in benchmark.scaledIterations {
-            blackHole(try Deflate.Compressor(configuration: .best).compress(compressible1MB))
+            blackHole(try Deflate.Compressor(configuration: .zlib(level: .best)).compress(compressible1MB))
         }
     }
 
     Benchmark("Compress/raw/default/1MB") { benchmark in
         for _ in benchmark.scaledIterations {
-            blackHole(try Deflate.Compressor(configuration: .raw).compress(compressible1MB))
+            blackHole(try Deflate.Compressor(configuration: .rawDeflate()).compress(compressible1MB))
         }
     }
 
     Benchmark("Compress/gzip/default/1MB") { benchmark in
         for _ in benchmark.scaledIterations {
-            blackHole(try Deflate.Compressor(configuration: .gzip).compress(compressible1MB))
+            blackHole(try Deflate.Compressor(configuration: .gzip()).compress(compressible1MB))
         }
     }
 
