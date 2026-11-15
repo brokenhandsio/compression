@@ -47,7 +47,7 @@ extension Deflate {
         public mutating func decompress(
             _ chunk: Span<UInt8>,
             into output: inout OutputSpan<UInt8>
-        ) throws(Deflate.Error) -> Int {
+        ) throws(Deflate.Error) -> StreamStep {
             unsafe stream.value.avail_in = UInt32(chunk.count)
             unsafe stream.value.next_in = CZlib_voidPtr_to_BytefPtr(chunk)
 
@@ -57,7 +57,7 @@ extension Deflate {
 
             loop: repeat {
                 if output.isFull {
-                    return chunk.count - Int(unsafe stream.value.avail_in)
+                    return .init(consumed: chunk.count - Int(unsafe stream.value.avail_in), status: .outputIsFull)
                 }
 
                 let (status, produced) = unsafe try output.withUnsafeMutableBufferPointer {
@@ -87,7 +87,7 @@ extension Deflate {
                     if unsafe stream.value.avail_in == 0 {
                         // Stream is done and there's no trailing data
                         _isFinished = true
-                        return chunk.count - Int(unsafe stream.value.avail_in)
+                        return .init(consumed: chunk.count - Int(unsafe stream.value.avail_in), status: .finished)
                     }
 
                     switch self.configuration.trailingDataPolicy {
@@ -99,7 +99,7 @@ extension Deflate {
                     case .stop:
                         // There might be trailing bytes we don't care about
                         _isFinished = true
-                        return chunk.count - Int(unsafe stream.value.avail_in)
+                        return .init(consumed: chunk.count - Int(unsafe stream.value.avail_in), status: .finished)
 
                     case .concatenate:
                         // Another member follows: restart and
@@ -121,7 +121,7 @@ extension Deflate {
                 }
             } while unsafe (stream.value.avail_in > 0 || stream.value.avail_out == 0)
 
-            return chunk.count - Int(unsafe stream.value.avail_in)
+            return .init(consumed: chunk.count - Int(unsafe stream.value.avail_in), status: .awaitingInput)
         }
 
         @inlinable

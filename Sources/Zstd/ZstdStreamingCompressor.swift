@@ -28,13 +28,13 @@ extension Zstd: StreamingCompressionAlgorithm {
         }
 
         @inlinable
-        public mutating func compress(_ chunk: Span<UInt8>, into output: inout OutputSpan<UInt8>) throws(Zstd.Error) -> Int {
+        public mutating func compress(_ chunk: Span<UInt8>, into output: inout OutputSpan<UInt8>) throws(Zstd.Error) -> StreamStep {
             precondition(!self.isFinished, "Stream is finished, call reset if you want to start over")
 
             var consumed = 0
 
             while consumed < chunk.count {
-                guard !output.isFull else { return consumed }
+                guard !output.isFull else { return .init(consumed: consumed, status: .outputIsFull) }
 
                 let result = unsafe output.withUnsafeMutableBufferPointer { tail, initialisedCount -> CZstd_StreamResult? in
                     let free = tail.count - initialisedCount
@@ -52,19 +52,19 @@ extension Zstd: StreamingCompressionAlgorithm {
                     return result
                 }
                 // Nowhere to write: the caller has to drain before we can go on.
-                guard let result else { return consumed }
+                guard let result else { return .init(consumed: consumed, status: .outputIsFull) }
 
                 try Zstd.check(result.status)
                 consumed += result.consumed
             }
 
-            return consumed
+            return .init(consumed: consumed, status: .awaitingInput)
         }
 
         @inlinable
-        public mutating func finish(into output: inout OutputSpan<UInt8>) throws(Zstd.Error) -> Bool {
-            guard !isFinished else { return true }
-            guard !output.isFull else { return false }
+        public mutating func finish(into output: inout OutputSpan<UInt8>) throws(Zstd.Error) -> StreamStep.Status {
+            guard !isFinished else { return .finished }
+            guard !output.isFull else { return .outputIsFull }
 
             let result = unsafe output.withUnsafeMutableBufferPointer { tail, initialisedCount -> CZstd_StreamResult? in
                 let free = tail.count - initialisedCount
@@ -80,13 +80,13 @@ extension Zstd: StreamingCompressionAlgorithm {
                 return result
             }
             // Nowhere to write: not finished, call again with room.
-            guard let result else { return false }
+            guard let result else { return .outputIsFull }
 
             if try Zstd.check(result.status) == 0 {
-                isFinished = true
+                self.isFinished = true
             }
 
-            return isFinished
+            return self.isFinished ? .finished : .outputIsFull
         }
 
         @inlinable
@@ -96,9 +96,9 @@ extension Zstd: StreamingCompressionAlgorithm {
         }
 
         @inlinable
-        public mutating func flush(into output: inout OutputSpan<UInt8>) throws(Zstd.Error) -> Bool {
+        public mutating func flush(into output: inout OutputSpan<UInt8>) throws(Zstd.Error) -> StreamStep.Status {
             precondition(!isFinished, "Stream is finished, call reset if you want to start over")
-            guard !output.isFull else { return false }
+            guard !output.isFull else { return .outputIsFull }
 
             let free = output.freeCapacity
             let result = unsafe output.withUnsafeMutableBufferPointer { tail, initialisedCount -> CZstd_StreamResult? in
@@ -114,11 +114,12 @@ extension Zstd: StreamingCompressionAlgorithm {
                 return result
             }
             // Nowhere to write: not flushed, call again with room.
-            guard let result else { return false }
+            guard let result else { return .outputIsFull }
 
             // A flush is complete when the output was not completely filled.
             // Otherwise there would likely be something else to write
-            return try Zstd.check(result.status) == 0 && result.produced < free
+            let flushed = try Zstd.check(result.status) == 0 && result.produced < free
+            return flushed ? .awaitingInput : .outputIsFull
         }
     }
 }

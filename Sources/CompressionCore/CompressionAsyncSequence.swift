@@ -44,9 +44,10 @@ public struct CompressionAsyncSequence<
             do {
                 return try chunk.withSpan { input throws(Algorithm.StreamingCompressor.Failure) in
                     try [UInt8](capacity: chunkSize) { output throws(Algorithm.StreamingCompressor.Failure) in
-                        consumed += try compressor.value.compress(input.extracting(consumed...), into: &output)
+                        let result = try compressor.value.compress(input.extracting(consumed...), into: &output)
+                        self.consumed += result.consumed
 
-                        if input.count != consumed {
+                        if result.status == .outputIsFull {
                             self.chunk = chunk
                         } else {
                             self.chunk = nil
@@ -72,11 +73,11 @@ public struct CompressionAsyncSequence<
             }
 
             if let chunk {
-                return try consume(chunk: chunk)
-            } else if !finished {
+                return try self.consume(chunk: chunk)
+            } else if !self.finished {
                 do {
                     let result = try [UInt8](capacity: chunkSize) { output throws(Algorithm.StreamingCompressor.Failure) in
-                        finished = try compressor.value.finish(into: &output)
+                        self.finished = try compressor.value.finish(into: &output) == .finished
                     }
                     return result
                 } catch {

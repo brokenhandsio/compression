@@ -28,7 +28,7 @@ struct StreamingRoundTripTests {
         var rest = compressed[...]
         while !decompressor.isFinished {
             let piece = try [UInt8](capacity: 64 * 1024) { out throws(Deflate.Error) in
-                let consumed = try decompressor.decompress(rest.span, into: &out)
+                let consumed = try decompressor.decompress(rest.span, into: &out).consumed
                 rest = rest.dropFirst(consumed)
             }
             output += piece

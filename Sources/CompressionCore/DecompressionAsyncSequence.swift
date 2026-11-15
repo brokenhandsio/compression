@@ -46,9 +46,10 @@ public struct DecompressionAsyncSequence<
             do {
                 return try chunk.withSpan { input throws(Algorithm.StreamingDecompressor.Failure) in
                     try [UInt8](capacity: chunkSize) { output throws(Algorithm.StreamingDecompressor.Failure) in
-                        consumed += try decompressor.value.decompress(input.extracting(consumed...), into: &output)
+                        let result = try decompressor.value.decompress(input.extracting(consumed...), into: &output)
+                        self.consumed += result.consumed
 
-                        if input.count != consumed {
+                        if result.status == .outputIsFull {
                             self.chunk = chunk
                         } else {
                             self.chunk = nil
@@ -73,7 +74,7 @@ public struct DecompressionAsyncSequence<
 
             let chunk: BackingSequence.Element?
             do {
-                chunk = try await backingIterator.next(isolation: actor)
+                chunk = try await self.backingIterator.next(isolation: actor)
             } catch {
                 throw .backingStreamError(error)
             }
@@ -81,11 +82,11 @@ public struct DecompressionAsyncSequence<
             guard let chunk else {
                 // There's no more input data: the stream must have reached its
                 // end-of-stream marker, otherwise the data was truncated.
-                guard decompressor.value.isFinished else { throw .truncatedStream }
+                guard self.decompressor.value.isFinished else { throw .truncatedStream }
                 return nil
             }
 
-            return try consume(chunk: chunk)
+            return try self.consume(chunk: chunk)
         }
     }
 

@@ -290,15 +290,17 @@ struct StreamTerminationTests {
         let compressedWithTrailingBytes = compressed + trailingBytes
 
         var decompressor = Deflate.StreamingDecompressor(configuration: .init(trailingDataPolicy: .stop))
-        var consumed: Int = 0
+        var step: StreamStep?
         _ = try [UInt8](capacity: 64 * 1024) { output in
-            consumed = try decompressor.decompress(compressedWithTrailingBytes.span, into: &output)
+            step = try decompressor.decompress(compressedWithTrailingBytes.span, into: &output)
         }
+        let consumed = try #require(step).consumed
+        #expect(step?.status == .finished)
         #expect(consumed == compressed.count)
         #expect(compressedWithTrailingBytes[consumed...] == trailingBytes[...])
 
         var empty = OutputSpan<UInt8>()
-        #expect(try decompressor.decompress(trailingBytes.span, into: &empty) == 0)
+        #expect(try decompressor.decompress(trailingBytes.span, into: &empty).consumed == 0)
     }
 
     @Test("Small pieces round-trip")
@@ -318,7 +320,7 @@ struct StreamTerminationTests {
         var round = 0
         while !decompressor.isFinished {
             let piece = try [UInt8](capacity: 1024) { out throws(Deflate.Error) in
-                let consumed = try decompressor.decompress(rest.span, into: &out)
+                let consumed = try decompressor.decompress(rest.span, into: &out).consumed
                 rest = rest.dropFirst(consumed)
             }
             output += piece

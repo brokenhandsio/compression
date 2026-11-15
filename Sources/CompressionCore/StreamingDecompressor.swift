@@ -21,13 +21,11 @@ public protocol StreamingDecompressor: ~Copyable, Sendable {
     init(configuration: Configuration)
 
     /// Decompress `chunk` into the provided `OutputSpan`.
-    ///
-    /// - Returns: how many bytes of `chunk` were consumed
     @discardableResult
     mutating func decompress(
         _ chunk: Span<UInt8>,
         into output: inout OutputSpan<UInt8>
-    ) throws(Failure) -> Int
+    ) throws(Failure) -> StreamStep
 
     /// Discard all stream state and start over, keeping `configuration`.
     ///
@@ -41,23 +39,24 @@ extension StreamingDecompressor where Self: ~Copyable {
 
     /// Decompress `chunk`, calling a throwing `handler` with each piece of output.
     ///
-    /// /// - Returns: how many bytes of `chunk` were consumed
+    /// - Returns: how many bytes of `chunk` were consumed
     @discardableResult
     public mutating func decompress(
         _ chunk: Span<UInt8>,
         handler: (Span<UInt8>) throws -> Void
     ) throws -> Int {
         var consumed = 0
-        var hasStoppedOnFullOutput = true
+        var status: StreamStep.Status = .awaitingInput
         try withTemporaryAllocation(of: UInt8.self, capacity: Self.outputBufferSize) { output throws in
             repeat {
-                consumed += try decompress(chunk.extracting(consumed...), into: &output)
-                hasStoppedOnFullOutput = output.freeCapacity == 0
+                let result = try decompress(chunk.extracting(consumed...), into: &output)
+                consumed += result.consumed
+                status = result.status
                 if !output.isEmpty {
                     try handler(output.span)
                     output.removeAll()
                 }
-            } while (hasStoppedOnFullOutput || consumed < chunk.count) && !isFinished
+            } while status == .outputIsFull
         }
         return consumed
     }
@@ -74,14 +73,15 @@ extension StreamingDecompressor where Self: ~Copyable {
         appendingTo output: inout [UInt8]
     ) throws(Failure) -> Int {
         var consumed = 0
-        var hasStoppedOnFullOutput = true
+        var status: StreamStep.Status = .awaitingInput
         repeat {
             let spare = min(output.capacity - output.count, Self.outputBufferSize)
             try output.append(addingCapacity: spare > 0 ? spare : Self.outputBufferSize) { tail throws(Failure) in
-                consumed += try decompress(chunk.extracting(consumed...), into: &tail)
-                hasStoppedOnFullOutput = tail.freeCapacity == 0
+                let result = try decompress(chunk.extracting(consumed...), into: &tail)
+                consumed += result.consumed
+                status = result.status
             }
-        } while (hasStoppedOnFullOutput || consumed < chunk.count) && !isFinished
+        } while status == .outputIsFull
         return consumed
     }
 }

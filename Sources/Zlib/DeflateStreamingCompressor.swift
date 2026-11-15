@@ -38,10 +38,10 @@ extension Deflate {
         public mutating func compress(
             _ chunk: Span<UInt8>,
             into output: inout OutputSpan<UInt8>
-        ) throws(Deflate.Error) -> Int {
+        ) throws(Deflate.Error) -> StreamStep {
             precondition(!self.isFinished, "Stream is finished, call reset if you want to start over")
 
-            guard !output.isFull else { return 0 }
+            guard !output.isFull else { return .init(consumed: 0, status: .outputIsFull) }
 
             unsafe stream.value.avail_in = UInt32(chunk.count)
             unsafe stream.value.next_in = CZlib_voidPtr_to_BytefPtr(chunk)
@@ -59,41 +59,41 @@ extension Deflate {
                 }
             } while unsafe (stream.value.avail_in > 0 || stream.value.avail_out == 0)
 
-            return unsafe chunk.count - Int(stream.value.avail_in)
+            let consumed = unsafe chunk.count - Int(stream.value.avail_in)
+            return .init(consumed: consumed, status: consumed == chunk.count ? .awaitingInput : .outputIsFull)
         }
 
         /// Emit all pending compressed data, aligned to a byte boundary, without ending the stream.
         ///
-        /// Returns `true` once the flush is complete. On `false` the output ran out of
-        /// space: call again with more room. Keep more than 6 bytes free to avoid
+        /// If this returns `.outputIsFull`, keep more than 6 bytes free to avoid
         /// emitting repeated flush markers.
         @inlinable
         @discardableResult
         public mutating func flush(
             into output: inout OutputSpan<UInt8>
-        ) throws(Deflate.Error) -> Bool {
-            guard output.freeCapacity > 0 else { return false }
+        ) throws(Deflate.Error) -> StreamStep.Status {
+            guard output.freeCapacity > 0 else { return .outputIsFull }
 
             unsafe stream.value.avail_in = 0
             unsafe stream.value.next_in = nil
             try deflateStep(flag: CZLIB_Z_SYNC_FLUSH, into: &output)
 
             // zlib signals a complete flush by leaving output space unused.
-            return unsafe stream.value.avail_out != 0
+            return unsafe stream.value.avail_out != 0 ? .awaitingInput : .outputIsFull
         }
 
         @inlinable
         public mutating func finish(
             into output: inout OutputSpan<UInt8>
-        ) throws(Deflate.Error) -> Bool {
-            guard !self.isFinished else { return true }
+        ) throws(Deflate.Error) -> StreamStep.Status {
+            guard !self.isFinished else { return .finished }
             unsafe stream.value.avail_in = 0
-            guard !output.isFull else { return false }
+            guard !output.isFull else { return .outputIsFull }
 
             let status = try deflateStep(flag: CZLIB_Z_FINISH, into: &output)
 
             self.isFinished = status == CZLIB_Z_STREAM_END
-            return self.isFinished
+            return self.isFinished ? .finished : .outputIsFull
         }
 
         @inlinable
