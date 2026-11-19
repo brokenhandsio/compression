@@ -56,8 +56,8 @@ struct SilesiaCorpusTests {
     @Test("Gzip round-trip", arguments: files)
     func gzipRoundTrip(file: String) throws {
         let input = try loadFile(file)
-        let c = Deflate.Compressor(configuration: .gzip)
-        let d = Deflate.Decompressor(configuration: .gzip)
+        let c = Deflate.Compressor(configuration: .gzip())
+        let d = Deflate.Decompressor(configuration: .gzip())
         #expect(try d.decompress(c.compress(input)) == input)
     }
 }
