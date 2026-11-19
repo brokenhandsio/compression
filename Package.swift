@@ -12,16 +12,16 @@ let package = Package(
     ],
     products: [
         .library(
-            name: "Compression",
-            targets: ["CompressionCore", "CompressionDeflate", "CompressionFoundation", "CompressionZstd"]
-        ),
-        .library(
             name: "CompressionDeflate",
             targets: ["CompressionDeflate"]
         ),
         .library(
             name: "CompressionZstd",
             targets: ["CompressionZstd"]
+        ),
+        .library(
+            name: "CompressionFoundationCompat",
+            targets: ["CompressionCore", "CompressionFoundationCompat"]
         ),
     ],
     targets: [
@@ -30,7 +30,7 @@ let package = Package(
             swiftSettings: swiftSettings
         ),
         .target(
-            name: "CompressionFoundation",
+            name: "CompressionFoundationCompat",
             dependencies: [
                 .target(name: "CompressionCore")
             ],
