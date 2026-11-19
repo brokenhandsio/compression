@@ -95,6 +95,11 @@ var swiftSettings: [SwiftSetting] {
         // https://github.com/swiftlang/swift/issues/88864
         // .enableExperimentalFeature("Embedded"),
         .treatWarning("EmbeddedRestrictions", as: .warning),
+        .enableUpcomingFeature("ExistentialAny"),
+        .enableUpcomingFeature("MemberImportVisibility"),
+        .enableUpcomingFeature("InferIsolatedConformances"),
+        .enableUpcomingFeature("ImmutableWeakCaptures"),
+        .enableExperimentalFeature("NonisolatedNonsendingByDefault"),
     ]
     #if compiler(>=6.4)
     settings.append(.enableExperimentalFeature("SuppressedAssociatedTypesWithDefaults"))
